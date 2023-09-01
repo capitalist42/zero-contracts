@@ -1,0 +1,49 @@
+# Buidler contract JSONs
+artifacts/
+!/external/artifacts/
+
+# Truffle contract JSONs
+/build/contracts
+
+/bin
+
+# Buidler compilation cache
+/cache
+
+# Ethereum accounts for testing
+/accountsList.js 
+
+# Exported function gas costs and test outputs
+/gasTest/outputs
+
+/secrets.js
+
+.vscode
+
+yarn-error.log
+
+# solidity-coverage
+/.coverage_artifacts
+/.coverage_cache
+/.coverage_contracts
+/coverage.json
+/coverage
+
+# eth-mutants
+/.eth-mutants
+/mutantOutput
+
+# echidna
+/crytic-export
+
+#typechain
+types/generated/*
+
+#hh deployments
+*/deployments/rskForked*/
+
+/tmp
+*.code-workspace
+.env
+node_modules
+/dist
