@@ -47,3 +47,5 @@ types/generated/*
 .env
 node_modules
 /dist
+/temp
+/tmp
