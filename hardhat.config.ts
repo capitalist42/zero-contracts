@@ -5,7 +5,6 @@ import { task /*HardhatUserConfig,*/ } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
 
 import "@nomicfoundation/hardhat-toolbox";
-import "@nomiclabs/hardhat-ethers";
 
 import "hardhat-gas-reporter";
 import "solidity-coverage";
@@ -14,7 +13,7 @@ import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomiclabs/hardhat-truffle5";
 
 import "hardhat-deploy";
-// import "tsconfig-paths/register";
+import "tsconfig-paths/register";
 import "@typechain/hardhat";
 /// import "hardhat-docgen";
 import "hardhat-contract-sizer";
@@ -31,7 +30,7 @@ import "hardhat-contract-sizer";
 // import "@nomicfoundation/hardhat-chai-matchers";
 // import "@tenderly/hardhat-tenderly";
 import "tsconfig-paths/register";
-import "@typechain/hardhat";
+// import "@typechain/hardhat";
 /// import "hardhat-docgen";
 /// import "@openzeppelin/hardhat-upgrades";
 import "@nomiclabs/hardhat-solhint";
