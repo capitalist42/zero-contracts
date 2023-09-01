@@ -140,7 +140,7 @@ task("check-redemption-hints", "Check redemption hints").setAction(async (taskAg
     );
     for (let i = 100; i <= 1000; i += 10) {
         const { truncatedZUSDamount } = await hintHelpers.getRedemptionHints(
-            ethers.utils.parseEther(i.toString()),
+            ethers.parseEther(i.toString()),
             latestPrice,
             0
         );
