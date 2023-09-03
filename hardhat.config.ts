@@ -143,7 +143,7 @@ task("check-redemption-hints", "Check redemption hints").setAction(async (taskAg
             latestPrice,
             0
         );
-        console.log(i, "-", (truncatedZUSDamount / 1e18).toString());
+        console.log(i, "-", ((truncatedZUSDamount as any) / 1e18).toString());
     }
 });
 
