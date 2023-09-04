@@ -2099,7 +2099,7 @@ contract("BorrowerOperations", async accounts => {
       const withdrawal_alice = toBN(dec(37, 16));
 
       const { dllrAmount } = await th.withdrawZusdAndConvertToDLLR(contracts, { maxFeePercentage: th._100pct, zusdAmount: withdrawal_alice, upperHint: alice, lowerHint: alice, extraParams: { from: alice } });
-      assert(toBN(dllrAmount).eq(withdrawal_alice));
+      assert.isTrue(dllrAmount == withdrawal_alice);
 
       const aliceTotalDebtAfterWithdraw = await troveManager.getTroveDebt(alice);
       const aliceNetDebtAfterWithdraw = (aliceTotalDebtAfterWithdraw).sub(ZUSD_GAS_COMPENSATION);
@@ -5868,7 +5868,7 @@ contract("BorrowerOperations", async accounts => {
       assert.equal(status_Before, 0);
 
       const ZUSDRequest = MIN_NET_DEBT;
-      borrowerOperations.openTrove(th._100pct, MIN_NET_DEBT, carol, carol, {
+      await borrowerOperations.openTrove(th._100pct, MIN_NET_DEBT, carol, carol, {
         from: alice,
         value: dec(100, "ether")
       });
@@ -5899,14 +5899,14 @@ contract("BorrowerOperations", async accounts => {
       const nueBalance_Before = await nueMockToken.balanceOf(alice);
 
       // check coll and debt before
-      assert.equal(debt_Before, 0);
-      assert.equal(coll_Before, 0);
+      assert.isTrue(debt_Before == 0);
+      assert.isTrue(coll_Before == 0);
 
       // check non-existent status
-      assert.equal(status_Before, 0);
+      assert.isTrue(status_Before == 0);
 
       const ZUSDRequest = MIN_NET_DEBT;
-      borrowerOperations.openNueTrove(th._100pct, MIN_NET_DEBT, carol, carol, {
+      await borrowerOperations.openNueTrove(th._100pct, MIN_NET_DEBT, carol, carol, {
         from: alice,
         value: dec(100, "ether")
       });
@@ -5923,6 +5923,13 @@ contract("BorrowerOperations", async accounts => {
       // check coll and debt after
       assert.isTrue(coll_After.gt("0"));
       assert.isTrue(debt_After.gt("0"));
+
+      console.log(`debt_After: ${debt_After}`);
+      //debt_after1 = await contracts.troveManager.getEntireDebtAndColl(alice)
+      // console.log(`${debt_after1[0]}`);
+      // console.log(`${debt_after1[1]}`);
+      // console.log(`coll_After: ${coll_After}`);
+      // console.log(`expectedDebt: ${expectedDebt}`);
 
       assert.isTrue(debt_After.eq(expectedDebt));
 

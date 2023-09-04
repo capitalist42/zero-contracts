@@ -308,11 +308,13 @@ class TestHelper {
   }
 
   static async getTroveEntireColl(contracts, trove) {
-    return this.toBN((await contracts.troveManager.getEntireDebtAndColl(trove))[1]);
+    // return this.toBN((await contracts.troveManager.getEntireDebtAndColl(trove))[1]);
+    return (await contracts.troveManager.getEntireDebtAndColl(trove))[1];
   }
 
   static async getTroveEntireDebt(contracts, trove) {
-    return this.toBN((await contracts.troveManager.getEntireDebtAndColl(trove))[0]);
+    // return this.toBN((await contracts.troveManager.getEntireDebtAndColl(trove))[0]);
+    return (await contracts.troveManager.getEntireDebtAndColl(trove))[0];
   }
 
   static async getTroveStake(contracts, trove) {
@@ -908,7 +910,7 @@ class TestHelper {
       "BorrowerOperationsTester",
       contracts.borrowerOperations.address, (await ethers.getSigners())[1]
     );
-    const dllrAmount = await ethersBorrowerOperations.callStatic.withdrawZusdAndConvertToDLLR(
+    const dllrAmount = await ethersBorrowerOperations.withdrawZusdAndConvertToDLLR.staticCall(
       maxFeePercentage,
       zusdAmount.toString(),
       upperHint,

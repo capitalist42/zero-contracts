@@ -1,6 +1,5 @@
 /* eslint-disable no-plusplus */
 import { Interface } from "@ethersproject/abi/lib/interface";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumberish, BytesLike, Contract, ContractInterface, Signer } from "ethers";
 
 import { TransactionReceipt, TransactionResponse } from "@ethersproject/providers";
