@@ -30,9 +30,9 @@ import { ERC20 } from "types/generated/external/artifacts";
 
 const TWO_DAYS = 86400 * 2;
 // const MAX_DURATION = new BN(24 * 60 * 60).mul(new BN(1092));
-const MAX_DURATION = ethers.BigNumber.from(24 * 60 * 60).mul(1092);
+const MAX_DURATION = BigInt(24 * 60 * 60).mul(1092);
 
-const ONE_RBTC = ethers.utils.parseEther("1.0");
+const ONE_RBTC = ethers.parseEther("1.0");
 
 describe("SIP-0061: Zero stability pool subsidies", () => {
     const getImpersonatedSignerFromJsonRpcProvider = async (addressToImpersonate) => {
@@ -129,7 +129,7 @@ describe("SIP-0061: Zero stability pool subsidies", () => {
         // CREATE PROPOSAL
         const sov = await ethers.getContract("SOV", timelockOwnerSigner);
 
-        const whaleAmount = (await sov.totalSupply()).mul(ethers.BigNumber.from(5));
+        const whaleAmount = (await sov.totalSupply()).mul(BigInt(5));
 
         await sov.mint(deployerSigner.address, whaleAmount);
 
@@ -187,11 +187,11 @@ describe("SIP-0061: Zero stability pool subsidies", () => {
         const stabilityPool = await ethers.getContract("StabilityPool");
         const communityIssuance = await ethers.getContract("CommunityIssuance");
 
-        expect(ethers.utils.getAddress(await stabilityPoolProxy.getImplementation())).to.equal(
-            ethers.utils.getAddress(stabilityPoolImpl.address)
+        expect(ethers.getAddress(await stabilityPoolProxy.getImplementation())).to.equal(
+            ethers.getAddress(stabilityPoolImpl.address)
         );
-        expect(ethers.utils.getAddress(await stabilityPool.communityIssuance())).to.equal(
-            ethers.utils.getAddress(communityIssuance.address)
+        expect(ethers.getAddress(await stabilityPool.communityIssuance())).to.equal(
+            ethers.getAddress(communityIssuance.address)
         );
     });
 });

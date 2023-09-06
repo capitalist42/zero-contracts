@@ -22,8 +22,8 @@ const {
 
 import { LiquityBaseParams } from "types/generated";
 
-const MAX_DURATION = ethers.BigNumber.from(24 * 60 * 60).mul(1092);
-const ONE_RBTC = ethers.utils.parseEther("1.0");
+const MAX_DURATION = BigInt(24 * 60 * 60).mul(1092);
+const ONE_RBTC = ethers.parseEther("1.0");
 
 describe("SIP-0062 onchain test", () => {
     const getImpersonatedSignerFromJsonRpcProvider = async (addressToImpersonate) => {
@@ -107,7 +107,7 @@ describe("SIP-0062 onchain test", () => {
         // loadFixtureAfterEach = true;
         // CREATE PROPOSAL
         const sov = await ethers.getContract("SOV", timelockOwnerSigner);
-        const whaleAmount = (await sov.totalSupply()).mul(ethers.BigNumber.from(5));
+        const whaleAmount = (await sov.totalSupply()).mul(BigInt(5));
         await sov.mint(deployerSigner.address, whaleAmount);
 
         /*
@@ -170,9 +170,9 @@ describe("SIP-0062 onchain test", () => {
         const zeroBaseParams: LiquityBaseParams = <LiquityBaseParams>(
             (<unknown>await ethers.getContract("LiquityBaseParams"))
         );
-        const newBorrowingFeeFloor = ethers.utils.parseEther("0.05");
-        const newMaxBorrowingFee = ethers.utils.parseEther("0.075");
-        const newRedemptionFeeFloor = ethers.utils.parseEther("0.01");
+        const newBorrowingFeeFloor = ethers.parseEther("0.05");
+        const newMaxBorrowingFee = ethers.parseEther("0.075");
+        const newRedemptionFeeFloor = ethers.parseEther("0.01");
 
         expect(await zeroBaseParams.BORROWING_FEE_FLOOR()).to.equal(newBorrowingFeeFloor);
         expect(await zeroBaseParams.MAX_BORROWING_FEE()).to.equal(newMaxBorrowingFee);

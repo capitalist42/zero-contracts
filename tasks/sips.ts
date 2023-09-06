@@ -129,7 +129,7 @@ task("sips:cancel", "Queue proposal in the Governor Owner contract")
                 `Governor contract's (${governorContract.address}) guardian (${guardian}) is not multisig (${msAddress})`
             );
         }
-        const governorInterface = new ethers.utils.Interface((await get(governor)).abi);
+        const governorInterface = new ethers.Interface((await get(governor)).abi);
         const data = governorInterface.encodeFunctionData("cancel", [proposal]);
         await sendWithMultisig(hre, msAddress, governorContract.address, data, signer);
     });
@@ -145,7 +145,7 @@ task("sips:vote-for", "Vote for or against a proposal in the Governor Owner cont
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ proposal, signer, governor }, hre) => {
         const { ethers } = hre;
-        const signerAcc = ethers.utils.isAddress(signer)
+        const signerAcc = ethers.isAddress(signer)
             ? signer
             : (await hre.getNamedAccounts())[signer];
 
@@ -174,7 +174,7 @@ task("sips:queue-timer", "Queue SIP for execution with timer")
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ proposal: proposalId, signer, governor }, hre) => {
         const { ethers } = hre;
-        const signerAcc = ethers.utils.isAddress(signer)
+        const signerAcc = ethers.isAddress(signer)
             ? signer
             : (await hre.getNamedAccounts())[signer];
 
@@ -225,9 +225,7 @@ task("sips:execute-timer", "Execute SIP with countdown")
     .setAction(async ({ proposal: proposalId, signer, governor }, hre) => {
         const { getNamedAccounts, ethers } = hre;
 
-        const signerAcc = ethers.utils.isAddress(signer)
-            ? signer
-            : (await getNamedAccounts())[signer];
+        const signerAcc = ethers.isAddress(signer) ? signer : (await getNamedAccounts())[signer];
         const governorContract = await ethers.getContract(
             governor,
             await ethers.getSigner(signerAcc)

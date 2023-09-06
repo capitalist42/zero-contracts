@@ -11,7 +11,7 @@ const logger = new Logs().showInConsole(true);
 
 const encodeParameters = (hre: HardhatRuntimeEnvironment, types, values) => {
     const { ethers } = hre;
-    const abi = new ethers.utils.AbiCoder();
+    const abi = new ethers.AbiCoder();
     return abi.encode(types, values);
 };
 
@@ -25,13 +25,13 @@ const sendWithMultisig = async (
 ) => {
     const { ethers } = hre;
     const multisig = await ethers.getContractAt("MultiSigWallet", multisigAddress);
-    const signer = await ethers.getSigner(sender);
+    const signer = await ethers.provider.getSigner(sender);
     const receipt = await (
         await multisig.connect(signer).submitTransaction(contractAddress, value, data)
     ).wait();
 
     const abi = ["event Submission(uint256 indexed transactionId)"];
-    const iface = new ethers.utils.Interface(abi);
+    const iface = new ethers.Interface(abi);
     const parsedEvent = await getParsedEventLogFromReceipt(receipt, iface, "Submission");
     await multisigCheckTx(hre, parsedEvent.transactionId.value.toNumber(), multisig.address);
 };
@@ -53,7 +53,7 @@ const multisigAddOwner = async (hre: HardhatRuntimeEnvironment, addAddress, send
         deployments: { get },
     } = hre;
     const multisigDeployment = await get("MultiSigWallet");
-    let multisigInterface = new ethers.utils.Interface(multisigDeployment.abi);
+    let multisigInterface = new ethers.Interface(multisigDeployment.abi);
     let data = multisigInterface.encodeFunctionData("addOwner", [addAddress]);
     ///@todo check if the deployer is one of ms owners
     console.log(`creating multisig tx to add new owner ${addAddress}...`);
@@ -76,7 +76,7 @@ const multisigRemoveOwner = async (hre: HardhatRuntimeEnvironment, removeAddress
         deployments: { get },
     } = hre;
     const multisigDeployment = await get("MultiSigWallet");
-    let multisigInterface = new ethers.utils.Interface(multisigDeployment.abi);
+    let multisigInterface = new ethers.Interface(multisigDeployment.abi);
     let data = multisigInterface.encodeFunctionData("removeOwner", [removeAddress]);
     console.log(`creating multisig tx to remove owner ${removeAddress}...`);
     await sendWithMultisig(
@@ -364,7 +364,7 @@ const deployWithCustomProxy = async (
             //multisig is the owner
             const multisigDeployment = await get(multisigName);
             //@todo wrap getting ms tx data into a helper
-            let proxyInterface = new ethers.utils.Interface(proxyDeployment.abi);
+            let proxyInterface = new ethers.Interface(proxyDeployment.abi);
             let data = proxyInterface.encodeFunctionData("setImplementation", [tx.address]);
             log(
                 `Creating multisig tx to set ${logicDeployedName} (${tx.address}) as implementation for ${logicDeployedName} (${proxyDeployment.address}...`
@@ -389,7 +389,7 @@ const deployWithCustomProxy = async (
                 `>>> New implementation ${await proxy.getImplementation()} is set to the proxy <<<`
             );
         }
-        if (ethers.utils.isAddress(proxyOwner) && (await proxy.getOwner()) !== proxyOwner) {
+        if (ethers.isAddress(proxyOwner) && (await proxy.getOwner()) !== proxyOwner) {
             await proxy.transferOwnership(proxyOwner);
             logger.success(
                 `Proxy ${proxyDeployedName} ownership transferred to ${await proxy.getOwner()}`

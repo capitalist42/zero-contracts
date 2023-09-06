@@ -38,9 +38,9 @@ import { ERC20 } from "types/generated/external/artifacts";
 
 const TWO_DAYS = 86400 * 2;
 // const MAX_DURATION = new BN(24 * 60 * 60).mul(new BN(1092));
-const MAX_DURATION = ethers.BigNumber.from(24 * 60 * 60).mul(1092);
+const MAX_DURATION = BigInt(24 * 60 * 60).mul(1092);
 
-const ONE_RBTC = ethers.utils.parseEther("1.0");
+const ONE_RBTC = ethers.parseEther("1.0");
 
 describe("Staking Modules Deployments and Upgrades via Governance", () => {
     // async function setupTest() {
@@ -137,7 +137,7 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
             const sov = await ethers.getContract("SOV", timelockOwnerSigner);
             //const whaleAmount = await sov.balanceOf(multisigSigner._address);
             //await sov.transfer(deployerSigner.address, whaleAmount);
-            const whaleAmount = (await sov.totalSupply()).mul(ethers.BigNumber.from(5));
+            const whaleAmount = (await sov.totalSupply()).mul(BigInt(5));
 
             await sov.mint(deployerSigner.address, whaleAmount);
 
@@ -207,37 +207,37 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
 
             const borrowerOperationsProxy = await ethers.getContract("BorrowerOperations_Proxy");
             const borrowerOperationsImpl = await get("BorrowerOperations_Implementation"); //await ethers.getContract("BorrowerOperations");
-            expect(
-                ethers.utils.getAddress(await borrowerOperationsProxy.getImplementation())
-            ).to.equal(ethers.utils.getAddress(borrowerOperationsImpl.address));
+            expect(ethers.getAddress(await borrowerOperationsProxy.getImplementation())).to.equal(
+                ethers.getAddress(borrowerOperationsImpl.address)
+            );
 
             const borrowerOperations = await ethers.getContract("BorrowerOperations");
             const massetManager = await get("MassetManager");
-            expect(ethers.utils.getAddress(await borrowerOperations.massetManager())).to.equal(
-                ethers.utils.getAddress(massetManager.address)
+            expect(ethers.getAddress(await borrowerOperations.massetManager())).to.equal(
+                ethers.getAddress(massetManager.address)
             );
 
             const stabilityPoolProxy = await ethers.getContract("StabilityPool_Proxy");
             const stabilityPool = await ethers.getContract("StabilityPool_Implementation");
-            expect(ethers.utils.getAddress(await stabilityPoolProxy.getImplementation())).to.equal(
-                ethers.utils.getAddress(stabilityPool.address)
+            expect(ethers.getAddress(await stabilityPoolProxy.getImplementation())).to.equal(
+                ethers.getAddress(stabilityPool.address)
             );
 
             const troveManagerProxy = await ethers.getContract("TroveManager_Proxy");
             const troveManagerImpl = await get("TroveManager_Implementation");
             const troveManager = await ethers.getContract("TroveManager");
             const troveManagerRedeemOps = await ethers.getContract("TroveManagerRedeemOps");
-            expect(ethers.utils.getAddress(await troveManagerProxy.getImplementation())).to.equal(
-                ethers.utils.getAddress(troveManagerImpl.address)
+            expect(ethers.getAddress(await troveManagerProxy.getImplementation())).to.equal(
+                ethers.getAddress(troveManagerImpl.address)
             ); // should not change
-            expect(ethers.utils.getAddress(await troveManager.troveManagerRedeemOps())).to.equal(
-                ethers.utils.getAddress(troveManagerRedeemOps.address)
+            expect(ethers.getAddress(await troveManager.troveManagerRedeemOps())).to.equal(
+                ethers.getAddress(troveManagerRedeemOps.address)
             );
 
             const zusdTokenProxy = await ethers.getContract("ZUSDToken_Proxy");
             const zusdToken = await ethers.getContract("ZUSDToken_Implementation");
-            expect(ethers.utils.getAddress(await zusdTokenProxy.getImplementation())).to.equal(
-                ethers.utils.getAddress(zusdToken.address)
+            expect(ethers.getAddress(await zusdTokenProxy.getImplementation())).to.equal(
+                ethers.getAddress(zusdToken.address)
             );
         });
 
@@ -273,7 +273,7 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
             const sov = await ethers.getContract("SOV", timelockOwnerSigner);
             //const whaleAmount = await sov.balanceOf(multisigSigner._address);
             //await sov.transfer(deployerSigner.address, whaleAmount);
-            const whaleAmount = (await sov.totalSupply()).mul(ethers.BigNumber.from(5));
+            const whaleAmount = (await sov.totalSupply()).mul(BigInt(5));
 
             await sov.mint(deployerSigner.address, whaleAmount);
 
@@ -341,7 +341,7 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
             const zeroBaseParams: LiquityBaseParams = <LiquityBaseParams>(
                 (<unknown>await ethers.getContract("LiquityBaseParams"))
             );
-            const newFeeValue = ethers.utils.parseEther("0.025");
+            const newFeeValue = ethers.parseEther("0.025");
 
             expect(await zeroBaseParams.BORROWING_FEE_FLOOR())
                 .to.equal(await zeroBaseParams.REDEMPTION_FEE_FLOOR())
@@ -368,7 +368,7 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
             const sov = await ethers.getContract("SOV", timelockOwnerSigner);
             //const whaleAmount = await sov.balanceOf(multisigSigner._address);
             //await sov.transfer(deployerSigner.address, whaleAmount);
-            const whaleAmount = (await sov.totalSupply()).mul(ethers.BigNumber.from(5));
+            const whaleAmount = (await sov.totalSupply()).mul(BigInt(5));
 
             await sov.mint(deployerSigner.address, whaleAmount);
 
@@ -438,38 +438,38 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
 
             const borrowerOperationsProxy = await ethers.getContract("BorrowerOperations_Proxy");
             const borrowerOperationsImpl = await get("BorrowerOperations_Implementation"); //await ethers.getContract("BorrowerOperations");
-            expect(
-                ethers.utils.getAddress(await borrowerOperationsProxy.getImplementation())
-            ).to.equal(ethers.utils.getAddress(borrowerOperationsImpl.address));
+            expect(ethers.getAddress(await borrowerOperationsProxy.getImplementation())).to.equal(
+                ethers.getAddress(borrowerOperationsImpl.address)
+            );
 
             const borrowerOperations = await ethers.getContract("BorrowerOperations");
 
             const massetManager = await get("MassetManager");
-            expect(ethers.utils.getAddress(await borrowerOperations.massetManager())).to.equal(
-                ethers.utils.getAddress(massetManager.address)
+            expect(ethers.getAddress(await borrowerOperations.massetManager())).to.equal(
+                ethers.getAddress(massetManager.address)
             );
 
             const stabilityPoolProxy = await ethers.getContract("StabilityPool_Proxy");
             const stabilityPool = await ethers.getContract("StabilityPool_Implementation");
-            expect(ethers.utils.getAddress(await stabilityPoolProxy.getImplementation())).to.equal(
-                ethers.utils.getAddress(stabilityPool.address)
+            expect(ethers.getAddress(await stabilityPoolProxy.getImplementation())).to.equal(
+                ethers.getAddress(stabilityPool.address)
             );
 
             const troveManagerProxy = await ethers.getContract("TroveManager_Proxy");
             const troveManagerImpl = await get("TroveManager_Implementation");
             const troveManager = await ethers.getContract("TroveManager");
             const troveManagerRedeemOps = await ethers.getContract("TroveManagerRedeemOps");
-            expect(ethers.utils.getAddress(await troveManagerProxy.getImplementation())).to.equal(
-                ethers.utils.getAddress(troveManagerImpl.address)
+            expect(ethers.getAddress(await troveManagerProxy.getImplementation())).to.equal(
+                ethers.getAddress(troveManagerImpl.address)
             ); // should not change
-            expect(ethers.utils.getAddress(await troveManager.troveManagerRedeemOps())).to.equal(
-                ethers.utils.getAddress(troveManagerRedeemOps.address)
+            expect(ethers.getAddress(await troveManager.troveManagerRedeemOps())).to.equal(
+                ethers.getAddress(troveManagerRedeemOps.address)
             );
 
             const zusdTokenProxy = await ethers.getContract("ZUSDToken_Proxy");
             const zusdToken = await ethers.getContract("ZUSDToken_Implementation");
-            expect(ethers.utils.getAddress(await zusdTokenProxy.getImplementation())).to.equal(
-                ethers.utils.getAddress(zusdToken.address)
+            expect(ethers.getAddress(await zusdTokenProxy.getImplementation())).to.equal(
+                ethers.getAddress(zusdToken.address)
             );
 
             expect((await governorOwner.proposals(proposalId)).executed).to.be.true;
@@ -477,7 +477,7 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
             const zeroBaseParams: LiquityBaseParams = <LiquityBaseParams>(
                 (<unknown>await ethers.getContract("LiquityBaseParams"))
             );
-            const newFeeValue = ethers.utils.parseEther("0.025");
+            const newFeeValue = ethers.parseEther("0.025");
 
             expect(await zeroBaseParams.BORROWING_FEE_FLOOR())
                 .to.equal(await zeroBaseParams.REDEMPTION_FEE_FLOOR())
@@ -509,7 +509,7 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
             // loadFixtureAfterEach = true;
             // CREATE PROPOSAL
             const sov = await ethers.getContract("SOV", timelockOwnerSigner);
-            const whaleAmount = (await sov.totalSupply()).mul(ethers.BigNumber.from(5));
+            const whaleAmount = (await sov.totalSupply()).mul(BigInt(5));
             await sov.mint(deployerSigner.address, whaleAmount);
 
             /*
@@ -576,9 +576,9 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
             const zeroBaseParams: LiquityBaseParams = <LiquityBaseParams>(
                 (<unknown>await ethers.getContract("LiquityBaseParams"))
             );
-            const newBorrowingFeeFloor = ethers.utils.parseEther("0.05");
-            const newMaxBorrowingFee = ethers.utils.parseEther("0.075");
-            const newRedemptionFeeFloor = ethers.utils.parseEther("0.019");
+            const newBorrowingFeeFloor = ethers.parseEther("0.05");
+            const newMaxBorrowingFee = ethers.parseEther("0.075");
+            const newRedemptionFeeFloor = ethers.parseEther("0.019");
 
             expect(await zeroBaseParams.BORROWING_FEE_FLOOR()).to.equal(newBorrowingFeeFloor);
             expect(await zeroBaseParams.MAX_BORROWING_FEE()).to.equal(newMaxBorrowingFee);

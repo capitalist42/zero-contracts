@@ -39,7 +39,7 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
     );
 
     const getImplementationAbi = ["function getImplementation() public view returns(address)"];
-    // const getImplementationInterface = new ethers.utils.Interface(getImplementationAbi);
+    // const getImplementationInterface = new ethers.Interface(getImplementationAbi);
     // validate deployments
     const errorLog: string[] = [];
     await Promise.all(
@@ -57,7 +57,7 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
         //throw Error();
     }
 
-    const iSetImplementationInterface = new ethers.utils.Interface([
+    const iSetImplementationInterface = new ethers.Interface([
         "function setImplementation(address _implementation)",
     ]);
 
@@ -70,7 +70,7 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
     const signatures = Array(targetsContractProxies.length).fill("setImplementation(address)");
 
     // replace troveManagerRedeepOps in TroveManager
-    const iSetTroveManagerRedeemOps = new ethers.utils.Interface([
+    const iSetTroveManagerRedeemOps = new ethers.Interface([
         "function setTroveManagerRedeemOps(address _troveManagerRedeemOps)",
     ]);
 
@@ -95,7 +95,7 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
     }
 
     // set MassetManager address in BorrowerOperations
-    const iSetMassetManagerAddress = new ethers.utils.Interface([
+    const iSetMassetManagerAddress = new ethers.Interface([
         "function setMassetManagerAddress(address _massetManagerAddress)",
     ]);
     signatures.push("setMassetManagerAddress(address)");
@@ -109,7 +109,7 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
     /*
     there is no IMassetManager yet
     if (
-        ethers.utils.getAddress(await borrowerOperations.massetManager()) ===
+        ethers.getAddress(await borrowerOperations.massetManager()) ===
         massetManagerDeployment.address
     ) {
         logger.error(
@@ -139,8 +139,8 @@ const zeroFeesUpdate = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgum
         deployments: { get },
     } = hre;
     const zeroBaseParams = await get("LiquityBaseParams");
-    const newFeeValue = ethers.utils.parseEther("0.025");
-    const iSetFeesFloor = new ethers.utils.Interface([
+    const newFeeValue = ethers.parseEther("0.025");
+    const iSetFeesFloor = new ethers.Interface([
         "function setBorrowingFeeFloor(uint256)",
         "function setRedemptionFeeFloor(uint256)",
     ]);
@@ -206,8 +206,8 @@ const sip0061 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
             values: [0, 0],
             signatures: ["setImplementation(address)", "setCommunityIssuanceAddress(address)"],
             data: [
-                ethers.utils.defaultAbiCoder.encode(["address"], [newStabilityPoolImplementation]),
-                ethers.utils.defaultAbiCoder.encode(["address"], [communityIssuanceAddress]),
+                ethers.defaultAbiCoder.encode(["address"], [newStabilityPoolImplementation]),
+                ethers.defaultAbiCoder.encode(["address"], [communityIssuanceAddress]),
             ],
             description:
                 "SIP-0061: Zero stability pool subsidies: https://github.com/DistributedCollective/SIPS/blob/cc1a368/SIP-0061.md, sha256: 9c38bb9e30855ef7fc2fba8a3a6b731182577ed8f5d5f5b18773ca528bde532b",
@@ -224,10 +224,10 @@ const zeroFeesUpdateSip0059 = async (hre: HardhatRuntimeEnvironment): Promise<IS
         deployments: { get },
     } = hre;
     const zeroBaseParams = await get("LiquityBaseParams");
-    const newBorrowingFeeFloorValue = ethers.utils.parseEther("0.05");
-    const newMaxBorrowingFee = ethers.utils.parseEther("0.075");
-    const newRedemptionFeeFloor = ethers.utils.parseEther("0.019");
-    const iSetFeesFloor = new ethers.utils.Interface([
+    const newBorrowingFeeFloorValue = ethers.parseEther("0.05");
+    const newMaxBorrowingFee = ethers.parseEther("0.075");
+    const newRedemptionFeeFloor = ethers.parseEther("0.019");
+    const iSetFeesFloor = new ethers.Interface([
         "function setBorrowingFeeFloor(uint256)",
         "function setMaxBorrowingFee(uint256)",
         "function setRedemptionFeeFloor(uint256)",
@@ -262,8 +262,8 @@ const sip0062 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
         deployments: { get },
     } = hre;
     const zeroBaseParams = await get("LiquityBaseParams");
-    const newRedemptionFeeFloor = ethers.utils.parseEther("0.01");
-    const iSetFeesFloor = new ethers.utils.Interface(["function setRedemptionFeeFloor(uint256)"]);
+    const newRedemptionFeeFloor = ethers.parseEther("0.01");
+    const iSetFeesFloor = new ethers.Interface(["function setRedemptionFeeFloor(uint256)"]);
     const args: ISipArgument = {
         args: {
             targets: [zeroBaseParams.address],
@@ -285,16 +285,16 @@ const zeroFeesUpdateSip0066 = async (hre: HardhatRuntimeEnvironment): Promise<IS
         deployments: { get },
     } = hre;
     const zeroBaseParams = await get("LiquityBaseParams");
-    const newBorrowingFeeFloorValue = ethers.utils.parseEther("0.99");
-    const newMaxBorrowingFee = ethers.utils.parseEther("1.00");
+    const newBorrowingFeeFloorValue = ethers.parseEther("0.99");
+    const newMaxBorrowingFee = ethers.parseEther("1.00");
     const args: ISipArgument = {
         args: {
             targets: [zeroBaseParams.address, zeroBaseParams.address],
             values: [0, 0],
             signatures: ["setBorrowingFeeFloor(uint256)", "setMaxBorrowingFee(uint256)"],
             data: [
-                ethers.utils.defaultAbiCoder.encode(["uint256"], [newBorrowingFeeFloorValue]),
-                ethers.utils.defaultAbiCoder.encode(["uint256"], [newMaxBorrowingFee]),
+                ethers.defaultAbiCoder.encode(["uint256"], [newBorrowingFeeFloorValue]),
+                ethers.defaultAbiCoder.encode(["uint256"], [newMaxBorrowingFee]),
             ],
             description:
                 "SIP-0066: Curtailing Zero borrowing, Details: https://github.com/DistributedCollective/SIPS/blob/54fe297/SIP-0066.md, sha256: b6aacd47eb5121f4b3c0c835157d3963e4c75354ee008ba717621a32bf9fa745",
