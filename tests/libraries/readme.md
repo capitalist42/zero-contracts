@@ -1,0 +1,1 @@
+The tests are to be transitioned to foundry because ethers v6 is not yet adapted by smock https://github.com/defi-wonderland/smock/issues/187
