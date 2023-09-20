@@ -4,6 +4,7 @@ import Logs from "node-logs";
 import sipArgsList from "./sips/args/sipArgs";
 import { logTimer, delay } from "scripts/helpers/utils";
 import { parseEthersLogToValue, sendWithMultisig } from "scripts/helpers/helpers";
+import { GovernorAlpha } from "types/generated";
 
 const logger = new Logs().showInConsole(true);
 
@@ -20,7 +21,7 @@ task("sips:create", "Create SIP to Sovryn Governance")
         } = hre;
 
         const governorDeployment = await get(governorName);
-        const governor = await ethers.getContract(governorName);
+        const governor = (await ethers.getContract(governorName)) as GovernorAlpha;
 
         logger.info("=== Creating SIP ===");
         logger.info(`Governor Address:    ${governorDeployment.address}`);
@@ -39,11 +40,12 @@ task("sips:create", "Create SIP to Sovryn Governance")
             sipArgs.description
         );
         const receipt = await tx.wait();
+        const log = receipt!.logs[0]! as unknown as { topics: string[]; data: string };
 
-        const eventData = governor.interface.parseLog(receipt.logs[0]).args;
+        const eventData = governor.interface.parseLog(log)!.args;
 
         logger.success("=== SIP has been created ===");
-        logger.success(`Governor Address:     ${governor.address}`);
+        logger.success(`Governor Address:     ${governor.target}`);
         logger.success(`Proposal ID:          ${eventData.id.toString()}`);
         logger.success(`Porposer:             ${eventData.proposer}`);
         logger.success(`Targets:              ${eventData.targets}`);
@@ -68,12 +70,12 @@ task("sips:queue", "Queue proposal in the Governor Owner contract")
     .setAction(async ({ proposal, signer, governor }, hre) => {
         const { ethers } = hre;
         const signerAcc = (await hre.getNamedAccounts())[signer];
-        const governorContract = await ethers.getContract(
+        const governorContract = (await ethers.getContract(
             governor,
             await ethers.getSigner(signerAcc)
-        );
+        )) as GovernorAlpha;
         await (await governorContract.queue(proposal)).wait();
-        if ((await governorContract.state(proposal)) === 5) {
+        if (Number(await governorContract.state(proposal)) === 5) {
             logger.info(`SIP ${proposal} queued`);
         } else {
             logger.error(`SIP ${proposal} is NOT queued`);
@@ -92,15 +94,15 @@ task("sips:execute", "Execute proposal in a Governor contract")
     .setAction(async ({ proposal, signer, governor }, hre) => {
         const { ethers } = hre;
         const signerAcc = (await hre.getNamedAccounts())[signer];
-        const governorContract = await ethers.getContract(
+        const governorContract = (await ethers.getContract(
             governor,
             await ethers.getSigner(signerAcc)
-        );
-        const gasEstimated = (await governorContract.estimateGas.execute(proposal)).toNumber();
+        )) as GovernorAlpha;
+        const gasEstimated = Number(await governorContract.execute.estimateGas(proposal));
         await (
             await governorContract.execute(proposal, { gasLimit: Math.round(gasEstimated * 2) })
         ).wait();
-        if ((await governorContract.state(proposal)) === 7) {
+        if ((await governorContract.state(proposal)) === 7n) {
             logger.info(`SIP ${proposal} executed`);
         } else {
             logger.error(`SIP ${proposal} is NOT executed`);
@@ -121,17 +123,17 @@ task("sips:cancel", "Queue proposal in the Governor Owner contract")
             deployments: { get },
             ethers,
         } = hre;
-        const governorContract = await ethers.getContract(governor);
+        const governorContract = (await ethers.getContract(governor)) as GovernorAlpha;
         const guardian = await governorContract.guardian();
         const msAddress = (await get("MultiSigWallet")).address;
         if (guardian !== msAddress) {
             throw new Error(
-                `Governor contract's (${governorContract.address}) guardian (${guardian}) is not multisig (${msAddress})`
+                `Governor contract's (${governorContract.target}) guardian (${guardian}) is not multisig (${msAddress})`
             );
         }
         const governorInterface = new ethers.Interface((await get(governor)).abi);
         const data = governorInterface.encodeFunctionData("cancel", [proposal]);
-        await sendWithMultisig(hre, msAddress, governorContract.address, data, signer);
+        await sendWithMultisig(hre, msAddress, governorContract.target as string, data, signer);
     });
 
 task("sips:vote-for", "Vote for or against a proposal in the Governor Owner contract")
@@ -149,17 +151,23 @@ task("sips:vote-for", "Vote for or against a proposal in the Governor Owner cont
             ? signer
             : (await hre.getNamedAccounts())[signer];
 
-        const governorContract = await ethers.getContract(
+        const governorContract = (await ethers.getContract(
             governor,
             await ethers.getSigner(signerAcc)
-        );
+        )) as GovernorAlpha;
         const tx = await (await governorContract.castVote(proposal, true)).wait();
         console.log("Voted for");
-        console.log("tx:", tx.transactionHash);
-        console.log("{ to:", tx.to, "from:", tx.from, "}");
+        console.log("tx:", tx!.hash);
+        console.log("{ to:", tx!.to, "from:", tx!.from, "}");
         console.log(
             "log:\n",
-            tx.logs.map((log) => parseEthersLogToValue(governorContract.interface.parseLog(log)))
+            tx!.logs.map((log) =>
+                parseEthersLogToValue(
+                    governorContract.interface.parseLog(
+                        log as unknown as { topics: string[]; data: string }
+                    )
+                )
+            )
         );
     });
 
@@ -178,10 +186,10 @@ task("sips:queue-timer", "Queue SIP for execution with timer")
             ? signer
             : (await hre.getNamedAccounts())[signer];
 
-        const governorContract = await ethers.getContract(
+        const governorContract = (await ethers.getContract(
             governor,
             await ethers.getSigner(signerAcc)
-        );
+        )) as GovernorAlpha;
         let proposal = await governorContract.proposals(proposalId);
         let currentBlockNumber = await ethers.provider.getBlockNumber();
         let passedTime = 0;
@@ -192,7 +200,7 @@ task("sips:queue-timer", "Queue SIP for execution with timer")
             passedTime++;
         };
         while (currentBlockNumber <= proposal.endBlock) {
-            delayTime = (proposal.endBlock - currentBlockNumber) * 30000;
+            delayTime = (Number(proposal.endBlock) - currentBlockNumber) * 30000;
             logger.warn(
                 `${new Date().toUTCString()}, current block ${currentBlockNumber}, target block ${
                     proposal.endBlock
@@ -204,7 +212,7 @@ task("sips:queue-timer", "Queue SIP for execution with timer")
         }
         clearInterval(intervalId);
         const proposalState = await governorContract.state(proposalId);
-        if (proposalState !== 4) {
+        if (Number(proposalState) !== 4) {
             throw new Error("Proposal NOT Succeeded");
         }
         (await governorContract.queue(proposalId)).wait();
@@ -226,17 +234,17 @@ task("sips:execute-timer", "Execute SIP with countdown")
         const { getNamedAccounts, ethers } = hre;
 
         const signerAcc = ethers.isAddress(signer) ? signer : (await getNamedAccounts())[signer];
-        const governorContract = await ethers.getContract(
+        const governorContract = (await ethers.getContract(
             governor,
             await ethers.getSigner(signerAcc)
-        );
+        )) as GovernorAlpha;
 
-        if ((await governorContract.state(proposalId)) !== 5) {
+        if (Number(await governorContract.state(proposalId)) !== 5) {
             throw new Error("Proposal must be queued for execution");
         }
         let proposal = await governorContract.proposals(proposalId);
         //Math.floor(Date.now() / 1000)
-        const currentBlockTimestamp = (await ethers.provider.getBlock("latest")).timestamp;
+        const currentBlockTimestamp = (await ethers.provider.getBlock("latest"))!.timestamp;
         let passedTime = 0;
         let logDelayTime;
         const logTime = () => {
@@ -244,7 +252,7 @@ task("sips:execute-timer", "Execute SIP with countdown")
             passedTime++;
         };
         if (proposal.eta > currentBlockTimestamp) {
-            const delayTime = proposal.eta - currentBlockTimestamp + 120; // add 2 minutes
+            const delayTime = Number(proposal.eta) - currentBlockTimestamp + 120; // add 2 minutes
             logDelayTime = delayTime * 1000;
             logger.info(`Delaying proposal ${proposalId} execution for ${delayTime} sec`);
             const intervalId = setInterval(logTime, 1000);
@@ -253,7 +261,7 @@ task("sips:execute-timer", "Execute SIP with countdown")
         }
         await (await governorContract.execute(proposalId)).wait();
         console.log("");
-        if ((await governorContract.state(proposalId)) === 7) {
+        if (Number(await governorContract.state(proposalId)) === 7) {
             logger.success(`Proposal ${proposalId} executed`);
         } else {
             logger.error(`Proposal ${proposalId} is NOT executed`);

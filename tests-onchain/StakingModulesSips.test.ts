@@ -48,7 +48,7 @@ describe("Staking Modules Deployments and Upgrades via Governance", () => {
         //await impersonateAccount(addressToImpersonate);
         //await ethers.provider.send("hardhat_impersonateAccount", [addressToImpersonate]);
         //return await ethers.getSigner(addressToImpersonate);
-        const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+        const provider = new ethers.JsonRpcProvider("http://localhost:8545");
         await provider.send("hardhat_impersonateAccount", [addressToImpersonate]);
         //return await ethers.getSigner(addressToImpersonate);
         return provider.getSigner(addressToImpersonate);

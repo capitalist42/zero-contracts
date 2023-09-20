@@ -62,10 +62,9 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
     ]);
 
     const datas = targetsContractProxies.map((val, index) => {
-        return iSetImplementationInterface._abiCoder.encode(
-            ["address"],
-            [contractsImplementations[index]]
-        );
+        return iSetImplementationInterface
+            .getAbiCoder()
+            .encode(["address"], [contractsImplementations[index]]);
     });
     const signatures = Array(targetsContractProxies.length).fill("setImplementation(address)");
 
@@ -79,10 +78,9 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
     const troveManagerRedeemOpsDeployment = await get("TroveManagerRedeemOps");
     targetsContractProxies.push(troveManagerDeployment.address);
     datas.push(
-        iSetTroveManagerRedeemOps._abiCoder.encode(
-            ["address"],
-            [troveManagerRedeemOpsDeployment.address]
-        )
+        iSetTroveManagerRedeemOps
+            .getAbiCoder()
+            .encode(["address"], [troveManagerRedeemOpsDeployment.address])
     );
 
     // validate TroveManagerRedeemOps
@@ -100,10 +98,12 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
     ]);
     signatures.push("setMassetManagerAddress(address)");
     const borrowerOperations = await ethers.getContract("BorrowerOperations");
-    targetsContractProxies.push(borrowerOperations.address);
+    targetsContractProxies.push(borrowerOperations.target.toString());
     const massetManagerDeployment = await get("MassetManager");
     datas.push(
-        iSetMassetManagerAddress._abiCoder.encode(["address"], [massetManagerDeployment.address])
+        iSetMassetManagerAddress
+            .getAbiCoder()
+            .encode(["address"], [massetManagerDeployment.address])
     );
 
     /*
@@ -150,8 +150,8 @@ const zeroFeesUpdate = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgum
             values: [0, 0],
             signatures: ["setBorrowingFeeFloor(uint256)", "setRedemptionFeeFloor(uint256)"],
             data: [
-                iSetFeesFloor._abiCoder.encode(["uint256"], [newFeeValue]),
-                iSetFeesFloor._abiCoder.encode(["uint256"], [newFeeValue]),
+                iSetFeesFloor.getAbiCoder().encode(["uint256"], [newFeeValue]),
+                iSetFeesFloor.getAbiCoder().encode(["uint256"], [newFeeValue]),
             ],
             description:
                 "SIP-0055: Zero Fee Floor Update, Details: https://github.com/DistributedCollective/SIPS/blob/b7efe43/SIP-0055.md, sha256: 0f193ed8589e8ef0e8db3b66ef2c23a6b139245d3a9335b67851421cbd73d53c",
@@ -206,8 +206,11 @@ const sip0061 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
             values: [0, 0],
             signatures: ["setImplementation(address)", "setCommunityIssuanceAddress(address)"],
             data: [
-                ethers.defaultAbiCoder.encode(["address"], [newStabilityPoolImplementation]),
-                ethers.defaultAbiCoder.encode(["address"], [communityIssuanceAddress]),
+                ethers.AbiCoder.defaultAbiCoder().encode(
+                    ["address"],
+                    [newStabilityPoolImplementation]
+                ),
+                ethers.AbiCoder.defaultAbiCoder().encode(["address"], [communityIssuanceAddress]),
             ],
             description:
                 "SIP-0061: Zero stability pool subsidies: https://github.com/DistributedCollective/SIPS/blob/cc1a368/SIP-0061.md, sha256: 9c38bb9e30855ef7fc2fba8a3a6b731182577ed8f5d5f5b18773ca528bde532b",
@@ -242,9 +245,9 @@ const zeroFeesUpdateSip0059 = async (hre: HardhatRuntimeEnvironment): Promise<IS
                 "setRedemptionFeeFloor(uint256)",
             ],
             data: [
-                iSetFeesFloor._abiCoder.encode(["uint256"], [newBorrowingFeeFloorValue]),
-                iSetFeesFloor._abiCoder.encode(["uint256"], [newMaxBorrowingFee]),
-                iSetFeesFloor._abiCoder.encode(["uint256"], [newRedemptionFeeFloor]),
+                iSetFeesFloor.getAbiCoder().encode(["uint256"], [newBorrowingFeeFloorValue]),
+                iSetFeesFloor.getAbiCoder().encode(["uint256"], [newMaxBorrowingFee]),
+                iSetFeesFloor.getAbiCoder().encode(["uint256"], [newRedemptionFeeFloor]),
             ],
             description:
                 "SIP-0059: Zero Fee Floor Update: March 22, Details: https://github.com/DistributedCollective/SIPS/blob/b22933f/SIP-0059.md, sha256: cf432a01b302b0c21b35f55c423d36233cf2f536a96a4d6cc97b2c5b5bb1fbda",
@@ -269,7 +272,7 @@ const sip0062 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
             targets: [zeroBaseParams.address],
             values: [0],
             signatures: ["setRedemptionFeeFloor(uint256)"],
-            data: [iSetFeesFloor._abiCoder.encode(["uint256"], [newRedemptionFeeFloor])],
+            data: [iSetFeesFloor.getAbiCoder().encode(["uint256"], [newRedemptionFeeFloor])],
             description:
                 "SIP-0062: Zero Fee Floor Update, May 12, Details: https://github.com/DistributedCollective/SIPS/blob/4fed4b8/SIP-0062.md, sha256: 566e57c2e98c848395b1b6b2d3718175ed592014a33e81c305947e5017b5925e",
         },
@@ -293,8 +296,8 @@ const zeroFeesUpdateSip0066 = async (hre: HardhatRuntimeEnvironment): Promise<IS
             values: [0, 0],
             signatures: ["setBorrowingFeeFloor(uint256)", "setMaxBorrowingFee(uint256)"],
             data: [
-                ethers.defaultAbiCoder.encode(["uint256"], [newBorrowingFeeFloorValue]),
-                ethers.defaultAbiCoder.encode(["uint256"], [newMaxBorrowingFee]),
+                ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [newBorrowingFeeFloorValue]),
+                ethers.AbiCoder.defaultAbiCoder().encode(["uint256"], [newMaxBorrowingFee]),
             ],
             description:
                 "SIP-0066: Curtailing Zero borrowing, Details: https://github.com/DistributedCollective/SIPS/blob/54fe297/SIP-0066.md, sha256: b6aacd47eb5121f4b3c0c835157d3963e4c75354ee008ba717621a32bf9fa745",

@@ -11,7 +11,7 @@ import {
     SnapshotRestorer,
     takeSnapshot,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { JsonRpcSigner } from "@ethersproject/providers";
+import { JsonRpcSigner } from "ethers";
 import hre from "hardhat";
 
 const {
@@ -20,9 +20,10 @@ const {
     deployments: { createFixture },
 } = hre;
 
-import { LiquityBaseParams } from "types/generated";
+import { GovernorAlpha, IStaking, LiquityBaseParams, SOV, StakingProxy } from "types/generated";
+import { IStakingInterface } from "types/generated/external/artifacts/IStaking";
 
-const MAX_DURATION = BigInt(24 * 60 * 60).mul(1092);
+const MAX_DURATION = BigInt(24 * 60 * 60 * 1092);
 const ONE_RBTC = ethers.parseEther("1.0");
 
 describe("SIP-0062 onchain test", () => {
@@ -30,7 +31,7 @@ describe("SIP-0062 onchain test", () => {
         //await impersonateAccount(addressToImpersonate);
         //await ethers.provider.send("hardhat_impersonateAccount", [addressToImpersonate]);
         //return await ethers.getSigner(addressToImpersonate);
-        const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+        const provider = new ethers.JsonRpcProvider("http://localhost:8545");
         await provider.send("hardhat_impersonateAccount", [addressToImpersonate]);
         //return await ethers.getSigner(addressToImpersonate);
         return provider.getSigner(addressToImpersonate);
@@ -40,16 +41,16 @@ describe("SIP-0062 onchain test", () => {
         const { deployer } = await getNamedAccounts();
 
         const deployerSigner = await ethers.getSigner(deployer);
-        await setBalance(deployer, ONE_RBTC.mul(10));
+        await setBalance(deployer, ONE_RBTC * 10n);
         /*await deployments.fixture(["StakingModules", "StakingModulesProxy"], {
             keepExistingDeployments: true,
         }); // start from a fresh deployments
         */
-        const stakingProxy = await ethers.getContract("StakingProxy", deployer);
+        const stakingProxy = (await ethers.getContract("StakingProxy", deployer)) as StakingProxy;
         const stakingModulesProxy = await ethers.getContract("StakingModulesProxy", deployer);
 
         const god = await deployments.get("GovernorOwner");
-        const governorOwner = await ethers.getContract("GovernorOwner");
+        const governorOwner = (await ethers.getContract("GovernorOwner")) as GovernorAlpha;
         /*const governorOwner = await ethers.getContractAt(
             "GovernorAlpha",
             god.address,
@@ -57,15 +58,15 @@ describe("SIP-0062 onchain test", () => {
         );*/
         const governorOwnerSigner: JsonRpcSigner = (await getImpersonatedSignerFromJsonRpcProvider(
             god.address
-        )) as JsonRpcSigner;
+        )) as unknown as JsonRpcSigner;
 
-        await setBalance(governorOwnerSigner._address, ONE_RBTC);
+        await setBalance(governorOwnerSigner.address, ONE_RBTC);
         const timelockOwner = await ethers.getContract("TimelockOwner", governorOwnerSigner);
 
         const timelockOwnerSigner: JsonRpcSigner = (await getImpersonatedSignerFromJsonRpcProvider(
-            timelockOwner.address
+            timelockOwner.target.toString()
         )) as JsonRpcSigner;
-        await setBalance(timelockOwnerSigner._address, ONE_RBTC);
+        await setBalance(timelockOwnerSigner.address, ONE_RBTC);
 
         const multisigSigner: JsonRpcSigner = (await getImpersonatedSignerFromJsonRpcProvider(
             (
@@ -106,15 +107,15 @@ describe("SIP-0062 onchain test", () => {
         } = await setupTest();
         // loadFixtureAfterEach = true;
         // CREATE PROPOSAL
-        const sov = await ethers.getContract("SOV", timelockOwnerSigner);
-        const whaleAmount = (await sov.totalSupply()).mul(BigInt(5));
+        const sov = (await ethers.getContract("SOV", timelockOwnerSigner)) as SOV;
+        const whaleAmount = (await sov.totalSupply()) * BigInt(5);
         await sov.mint(deployerSigner.address, whaleAmount);
 
         /*
             const quorumVotes = await governorOwner.quorumVotes();
             console.log('quorumVotes:', quorumVotes);
             */
-        await sov.connect(deployerSigner).approve(stakingProxy.address, whaleAmount);
+        await sov.connect(deployerSigner).approve(stakingProxy.target, whaleAmount);
         //const stakeABI = (await hre.artifacts.readArtifact("IStaking")).abi;
         const stakeABI = (await deployments.getArtifact("IStaking")).abi;
         // const stakeABI = (await ethers.getContractFactory("IStaking")).interface;
@@ -124,7 +125,11 @@ describe("SIP-0062 onchain test", () => {
                 'function pauseUnpause(bool _pause)',
                 'function paused() view returns (bool)'
             ];*/
-        const staking = await ethers.getContractAt(stakeABI, stakingProxy.address, deployerSigner);
+        const staking = (await ethers.getContractAt(
+            stakeABI,
+            stakingProxy.target,
+            deployerSigner
+        )) as unknown as IStaking;
         /*const multisigSigner = await getImpersonatedSignerFromJsonRpcProvider(
                 (
                     await get("MultiSigWallet")
@@ -132,7 +137,7 @@ describe("SIP-0062 onchain test", () => {
             );*/
         if (await staking.paused()) await staking.connect(multisigSigner).pauseUnpause(false);
         const kickoffTS = await stakingProxy.kickoffTS();
-        await staking.stake(whaleAmount, kickoffTS.add(MAX_DURATION), deployer, deployer);
+        await staking.stake(whaleAmount, kickoffTS + MAX_DURATION, deployer, deployer);
         await mine();
 
         // CREATE PROPOSAL AND VERIFY
@@ -140,9 +145,9 @@ describe("SIP-0062 onchain test", () => {
         await hre.run("sips:create", { argsFunc: "sip0062" });
         const proposalId = await governorOwner.latestProposalIds(deployer);
         expect(
-            proposalId.toNumber(),
+            Number(proposalId),
             "Proposal was not created. Check the SIP creation is not commented out."
-        ).equals(proposalIdBeforeSIP.toNumber() + 1);
+        ).equals(Number(proposalIdBeforeSIP) + 1);
 
         // VOTE FOR PROPOSAL
         console.log("voting for proposal");

@@ -14,7 +14,6 @@ import {
     takeSnapshot,
     SnapshotRestorer,
 } from "@nomicfoundation/hardhat-network-helpers";
-import { JsonRpcSigner } from "@ethersproject/providers";
 import hre from "hardhat";
 
 const {
@@ -23,20 +22,22 @@ const {
     deployments: { createFixture, get },
 } = hre;
 
+import { JsonRpcSigner } from "ethers";
+
 import sipArgs, { ISipArgument } from "../tasks/sips/args/sipArgs";
 
-import { GovernorAlpha, LiquityBaseParams } from "types/generated";
-import { ERC20 } from "types/generated/external/artifacts";
+import { GovernorAlpha, LiquityBaseParams, Proxy, StabilityPool } from "types/generated";
+import { ERC20, IStaking, SOV, StakingProxy } from "types/generated/external/artifacts";
 
 const TWO_DAYS = 86400 * 2;
 // const MAX_DURATION = new BN(24 * 60 * 60).mul(new BN(1092));
-const MAX_DURATION = BigInt(24 * 60 * 60).mul(1092);
+const MAX_DURATION = BigInt(24 * 60 * 60 * 1092);
 
 const ONE_RBTC = ethers.parseEther("1.0");
 
 describe("SIP-0061: Zero stability pool subsidies", () => {
     const getImpersonatedSignerFromJsonRpcProvider = async (addressToImpersonate) => {
-        const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+        const provider = new ethers.JsonRpcProvider("http://localhost:8545");
         await provider.send("hardhat_impersonateAccount", [addressToImpersonate]);
         return provider.getSigner(addressToImpersonate);
     };
@@ -45,25 +46,25 @@ describe("SIP-0061: Zero stability pool subsidies", () => {
         const { deployer } = await getNamedAccounts();
 
         const deployerSigner = await ethers.getSigner(deployer);
-        await setBalance(deployer, ONE_RBTC.mul(10));
+        await setBalance(deployer, ONE_RBTC * 10n);
 
-        const stakingProxy = await ethers.getContract("StakingProxy", deployer);
+        const stakingProxy = (await ethers.getContract("StakingProxy", deployer)) as StakingProxy;
         const stakingModulesProxy = await ethers.getContract("StakingModulesProxy", deployer);
 
         const god = await deployments.get("GovernorOwner");
-        const governorOwner = await ethers.getContract("GovernorOwner");
+        const governorOwner = (await ethers.getContract("GovernorOwner")) as GovernorAlpha;
 
         const governorOwnerSigner: JsonRpcSigner = (await getImpersonatedSignerFromJsonRpcProvider(
             god.address
         )) as JsonRpcSigner;
 
-        await setBalance(governorOwnerSigner._address, ONE_RBTC);
+        await setBalance(governorOwnerSigner.address, ONE_RBTC);
         const timelockOwner = await ethers.getContract("TimelockOwner", governorOwnerSigner);
 
         const timelockOwnerSigner: JsonRpcSigner = (await getImpersonatedSignerFromJsonRpcProvider(
-            timelockOwner.address
+            timelockOwner.target
         )) as JsonRpcSigner;
-        await setBalance(timelockOwnerSigner._address, ONE_RBTC);
+        await setBalance(timelockOwnerSigner.address, ONE_RBTC);
 
         const multisigSigner: JsonRpcSigner = (await getImpersonatedSignerFromJsonRpcProvider(
             (
@@ -120,6 +121,7 @@ describe("SIP-0061: Zero stability pool subsidies", () => {
             timelockOwnerSigner,
             multisigSigner,
         } = await setupTest();
+        //const stakingProxy:  =
 
         // DEPLOY CONTRACTS
         await deployments.fixture(["StabilityPool", "CommunityIssuance"], {
@@ -127,21 +129,25 @@ describe("SIP-0061: Zero stability pool subsidies", () => {
         });
 
         // CREATE PROPOSAL
-        const sov = await ethers.getContract("SOV", timelockOwnerSigner);
+        const sov = (await ethers.getContract("SOV", timelockOwnerSigner)) as SOV;
 
-        const whaleAmount = (await sov.totalSupply()).mul(BigInt(5));
+        const whaleAmount = (await sov.totalSupply()) * BigInt(5);
 
         await sov.mint(deployerSigner.address, whaleAmount);
 
-        await sov.connect(deployerSigner).approve(stakingProxy.address, whaleAmount);
+        await sov.connect(deployerSigner).approve(stakingProxy.target.toString(), whaleAmount);
 
         const stakeABI = (await deployments.getArtifact("IStaking")).abi;
 
-        const staking = await ethers.getContractAt(stakeABI, stakingProxy.address, deployerSigner);
+        const staking = (await ethers.getContractAt(
+            stakeABI,
+            stakingProxy.target.toString(),
+            deployerSigner
+        )) as unknown as IStaking;
 
         if (await staking.paused()) await staking.connect(multisigSigner).pauseUnpause(false);
         const kickoffTS = await stakingProxy.kickoffTS();
-        await staking.stake(whaleAmount, kickoffTS.add(MAX_DURATION), deployer, deployer);
+        await staking.stake(whaleAmount, kickoffTS + MAX_DURATION, deployer, deployer);
         await mine();
 
         // CREATE PROPOSAL AND VERIFY
@@ -182,16 +188,16 @@ describe("SIP-0061: Zero stability pool subsidies", () => {
         // VALIDATE EXECUTION
         expect((await governorOwner.proposals(proposalId)).executed).to.be.true;
 
-        const stabilityPoolProxy = await ethers.getContract("StabilityPool_Proxy");
+        const stabilityPoolProxy = (await ethers.getContract("StabilityPool_Proxy")) as Proxy;
         const stabilityPoolImpl = await ethers.getContract("StabilityPool_Implementation");
-        const stabilityPool = await ethers.getContract("StabilityPool");
+        const stabilityPool = (await ethers.getContract("StabilityPool")) as StabilityPool;
         const communityIssuance = await ethers.getContract("CommunityIssuance");
 
         expect(ethers.getAddress(await stabilityPoolProxy.getImplementation())).to.equal(
-            ethers.getAddress(stabilityPoolImpl.address)
+            ethers.getAddress(stabilityPoolImpl.target.toString())
         );
         expect(ethers.getAddress(await stabilityPool.communityIssuance())).to.equal(
-            ethers.getAddress(communityIssuance.address)
+            ethers.getAddress(communityIssuance.target.toString())
         );
     });
 });

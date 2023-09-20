@@ -1,6 +1,16 @@
 /* eslint-disable no-plusplus */
-import { Interface } from "@ethersproject/abi/lib/interface";
-import { BigNumberish, BytesLike, Contract, ContractInterface, Signer } from "ethers";
+// import { Interface } from "@ethersproject/abi/lib/interface";
+import {
+    BigNumberish,
+    BytesLike,
+    Contract,
+    ContractInterface,
+    ContractTransactionReceipt,
+    Signer,
+    Interface,
+    EventLog,
+    Log,
+} from "ethers";
 
 import { TransactionReceipt, TransactionResponse } from "@ethersproject/providers";
 import { Address } from "hardhat-deploy/types";
@@ -8,6 +18,8 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { GovernorAlpha, MultiSigWallet } from "types/generated";
 import Logs from "node-logs";
 const logger = new Logs().showInConsole(true);
+
+// const { ethers } = require("hardhat");
 
 const encodeParameters = (hre: HardhatRuntimeEnvironment, types, values) => {
     const { ethers } = hre;
@@ -25,7 +37,7 @@ const sendWithMultisig = async (
 ) => {
     const { ethers } = hre;
     const multisig = await ethers.getContractAt("MultiSigWallet", multisigAddress);
-    const signer = await ethers.provider.getSigner(sender);
+    const signer = await ethers.getSigner(sender);
     const receipt = await (
         await multisig.connect(signer).submitTransaction(contractAddress, value, data)
     ).wait();
@@ -33,7 +45,11 @@ const sendWithMultisig = async (
     const abi = ["event Submission(uint256 indexed transactionId)"];
     const iface = new ethers.Interface(abi);
     const parsedEvent = await getParsedEventLogFromReceipt(receipt, iface, "Submission");
-    await multisigCheckTx(hre, parsedEvent.transactionId.value.toNumber(), multisig.address);
+    await multisigCheckTx(
+        hre,
+        parsedEvent.transactionId.value.toNumber(),
+        await multisig.getAddress()
+    );
 };
 
 const signWithMultisig = async (hre: HardhatRuntimeEnvironment, multisigAddress, txId, sender) => {
@@ -44,7 +60,7 @@ const signWithMultisig = async (hre: HardhatRuntimeEnvironment, multisigAddress,
     await (await multisig.connect(signer).confirmTransaction(txId)).wait();
     // console.log("Required signatures:", await multisig.required());
     console.log("Signed. Details:");
-    await multisigCheckTx(txId, multisig.address);
+    await multisigCheckTx(txId, multisig.target);
 };
 
 const multisigAddOwner = async (hre: HardhatRuntimeEnvironment, addAddress, sender) => {
@@ -108,10 +124,10 @@ const multisigExecuteTx = async (
         signer
     );
     console.log("Executing multisig txId", txId, "...");
-    const gasEstimated = (await multisig.estimateGas.executeTransaction(txId)).toNumber();
+    const gasEstimated = ethers.toNumber(await multisig.executeTransaction.estimateGas(txId));
     console.log("Estimated Gas:", gasEstimated);
     const lastBlock = await ethers.provider.getBlock("latest");
-    const lastBlockGasLimit = lastBlock.gasLimit.toNumber();
+    const lastBlockGasLimit = Number(lastBlock!.gasLimit);
     console.log("Last Block Gas Limit:", lastBlockGasLimit);
     const gasEstimatedMul = gasEstimated * 1.3;
 
@@ -119,8 +135,12 @@ const multisigExecuteTx = async (
     let wontExecute = false;
     if (gasEstimatedMul < lastBlockGasLimit) {
         try {
-            await multisig.callStatic.executeTransaction(txId, { gasEstimatedMul });
-            receipt = await (await multisig.executeTransaction(txId, { gasEstimatedMul })).wait();
+            await multisig.executeTransaction.staticCall(txId, {
+                gasLimit: gasEstimatedMul,
+            });
+            receipt = await (
+                await multisig.executeTransaction(txId, { gasLimit: gasEstimatedMul })
+            ).wait();
         } catch (e) {
             wontExecute = true;
         }
@@ -135,7 +155,7 @@ const multisigExecuteTx = async (
     logger.success("DONE. Details:");
     console.log("Tx hash:", receipt.transactionHash);
     console.log("Gas used:", receipt.gasUsed.toNumber());
-    await multisigCheckTx(txId, multisig.address);
+    await multisigCheckTx(txId, multisig.target);
     logger.warn("===============================================================================");
 };
 
@@ -163,7 +183,7 @@ const multisigCheckTx = async (
         ", Destination: ",
         transaction.destination,
         ", Confirmations: ",
-        (await multisig.getConfirmationCount(txId)).toNumber(),
+        Number(await multisig.getConfirmationCount(txId)),
         ", Executed:",
         transaction.executed,
         ", Confirmed by:",
@@ -199,7 +219,7 @@ const multisigRevokeConfirmation = async (
     // console.log("Required signatures:", await multisig.required());
     console.log(`Confirmation of txId ${txId} revoked.`);
     console.log("Details:");
-    await multisigCheckTx(txId, multisig.address);
+    await multisigCheckTx(txId, multisig.target);
 };
 
 const parseEthersLogToValue = (parsed) => {
@@ -244,19 +264,28 @@ const getEthersLog = async (contract: Contract, filter) => {
 };
 
 const getParsedEventLogFromReceipt = async (
-    receipt: TransactionReceipt,
+    receipt: ContractTransactionReceipt | null,
     iface: Interface,
     eventName: string
 ) => {
-    const topic = iface.getEventTopic(eventName);
+    if (!receipt) return "";
+
+    let parsedLog = receipt.logs.find(
+        (log) =>
+            iface.parseLog(log as unknown as { topics: string[]; data: string })?.name ===
+            eventName
+    ) as EventLog;
+    //console.log(log);
+
+    //const topic = iface.getEventTopic(eventName);
     // search for the log by the topic
-    const log = receipt.logs.find((x) => x.topics.indexOf(topic) >= 0) as unknown as {
-        topics: Array<string>;
-        data: string;
-    };
+    // const log = receipt.logs.find((x) => x.topics.indexOf(topic) >= 0) as unknown as {
+    // topics: Array<string>;
+    // data: string;
+    // };
     // finally, you can parse the log with the interface
     // to get a more user-friendly event object
-    const parsedLog = iface.parseLog(log);
+    //const parsedLog = iface.parseLog(log);
     return parseEthersLog(parsedLog);
 };
 
@@ -400,7 +429,7 @@ const deployWithCustomProxy = async (
 };
 const getImpersonatedSignerFromJsonRpcProvider = async (hre, addressToImpersonate) => {
     const { ethers } = hre;
-    const provider = new ethers.providers.JsonRpcProvider("http://localhost:8545");
+    const provider = new ethers.JsonRpcProvider("http://localhost:8545");
     await provider.send("hardhat_impersonateAccount", [addressToImpersonate]);
     return provider.getSigner(addressToImpersonate);
 };
