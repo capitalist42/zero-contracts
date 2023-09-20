@@ -2,48 +2,30 @@ require("dotenv").config();
 require("@secrez/cryptoenv").parse();
 import { HardhatNetworkAccountsUserConfig, HardhatUserConfig } from "hardhat/types";
 import { task /*HardhatUserConfig,*/ } from "hardhat/config";
-import "@nomiclabs/hardhat-ethers";
 
-import "@nomicfoundation/hardhat-toolbox";
-
+import "@nomicfoundation/hardhat-ethers";
+import "hardhat-deploy";
+import "hardhat-deploy-ethers";
+import "@nomicfoundation/hardhat-chai-matchers";
+import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+
 import "@nomiclabs/hardhat-web3";
-import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomiclabs/hardhat-truffle5";
 
-import "hardhat-deploy";
 import "tsconfig-paths/register";
-import "@typechain/hardhat";
 /// import "hardhat-docgen";
 import "hardhat-contract-sizer";
-/// import "@openzeppelin/hardhat-upgrades";
 
-// import "tasks/contractsInteraction";
-// import "tasks/metaAssetTokenInteraction";
-// import "tasks/upgradeContract";
-// import "tasks/transferOwnership";
-// import "tasks/sips/createSIP";
-
-// import * as dotenv from "dotenv";
-// require("cryptoenv").parse(); //doesn't work with yarn workspaces
-// import "@nomicfoundation/hardhat-chai-matchers";
-// import "@tenderly/hardhat-tenderly";
 import "tsconfig-paths/register";
-// import "@typechain/hardhat";
-/// import "hardhat-docgen";
-/// import "@openzeppelin/hardhat-upgrades";
+// import "hardhat-docgen";
 import "@nomiclabs/hardhat-solhint";
 
-// import "tasks/contractsInteraction";
-
-import "@typechain/ethers-v5";
+//import "@typechain/ethers-v5";
+import "@typechain/ethers-v6";
 import "@nomiclabs/hardhat-etherscan";
-import "solidity-coverage";
 import "@primitivefi/hardhat-dodoc";
-
-import { extendEnvironment } from "hardhat/config";
-import { HardhatRuntimeEnvironment, HttpNetworkUserConfig } from "hardhat/types";
 
 // import * as tdly from "@tenderly/hardhat-tenderly";
 // tdly.setup();
@@ -345,7 +327,7 @@ const config: HardhatUserConfig = {
     },
     typechain: {
         outDir: "types/generated",
-        target: "ethers-v5",
+        target: "ethers-v6",
         externalArtifacts: ["external/artifacts/*.sol/!(*.dbg.json)"], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
     },
     external: {
