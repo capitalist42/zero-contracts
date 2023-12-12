@@ -11,7 +11,7 @@ export interface ISipArgument {
         data: string[];
         description: string;
     };
-    governorName: string;
+    governor: string;
 }
 
 const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> => {
@@ -127,7 +127,7 @@ const zeroMyntIntegrationSIP = async (hre: HardhatRuntimeEnvironment): Promise<I
             description:
                 "SIP-0054: Integrate Mynt with Zero, Details: https://github.com/DistributedCollective/SIPS/blob/98ef848/SIP-0054.md, sha256: f623ab973a6fa175cc2bd1ebc50cf79699de2f88b84d98535288dba150a4ff4b",
         },
-        governorName: "GovernorOwner",
+        governor: "GovernorOwner",
     };
 
     return args;
@@ -156,7 +156,7 @@ const zeroFeesUpdate = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgum
             description:
                 "SIP-0055: Zero Fee Floor Update, Details: https://github.com/DistributedCollective/SIPS/blob/b7efe43/SIP-0055.md, sha256: 0f193ed8589e8ef0e8db3b66ef2c23a6b139245d3a9335b67851421cbd73d53c",
         },
-        governorName: "GovernorOwner",
+        governor: "GovernorOwner",
     };
 
     return args;
@@ -173,7 +173,7 @@ const sip0054And0055Combo = async (hre: HardhatRuntimeEnvironment): Promise<ISip
             data: [],
             description: "",
         },
-        governorName: "GovernorOwner",
+        governor: "GovernorOwner",
     };
     for (const prop in args0054.args) {
         argsCombo.args[prop] =
@@ -215,7 +215,7 @@ const sip0061 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
             description:
                 "SIP-0061: Zero stability pool subsidies: https://github.com/DistributedCollective/SIPS/blob/cc1a368/SIP-0061.md, sha256: 9c38bb9e30855ef7fc2fba8a3a6b731182577ed8f5d5f5b18773ca528bde532b",
         },
-        governorName: "GovernorOwner",
+        governor: "GovernorOwner",
     };
 
     return args;
@@ -252,7 +252,7 @@ const zeroFeesUpdateSip0059 = async (hre: HardhatRuntimeEnvironment): Promise<IS
             description:
                 "SIP-0059: Zero Fee Floor Update: March 22, Details: https://github.com/DistributedCollective/SIPS/blob/b22933f/SIP-0059.md, sha256: cf432a01b302b0c21b35f55c423d36233cf2f536a96a4d6cc97b2c5b5bb1fbda",
         },
-        governorName: "GovernorOwner",
+        governor: "GovernorOwner",
     };
 
     return args;
@@ -276,7 +276,7 @@ const sip0062 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
             description:
                 "SIP-0062: Zero Fee Floor Update, May 12, Details: https://github.com/DistributedCollective/SIPS/blob/4fed4b8/SIP-0062.md, sha256: 566e57c2e98c848395b1b6b2d3718175ed592014a33e81c305947e5017b5925e",
         },
-        governorName: "GovernorOwner",
+        governor: "GovernorOwner",
     };
 
     return args;
@@ -302,7 +302,7 @@ const zeroFeesUpdateSip0066 = async (hre: HardhatRuntimeEnvironment): Promise<IS
             description:
                 "SIP-0066: Curtailing Zero borrowing, Details: https://github.com/DistributedCollective/SIPS/blob/54fe297/SIP-0066.md, sha256: b6aacd47eb5121f4b3c0c835157d3963e4c75354ee008ba717621a32bf9fa745",
         },
-        governorName: "GovernorOwner",
+        governor: "GovernorOwner",
     };
 
     return args;
