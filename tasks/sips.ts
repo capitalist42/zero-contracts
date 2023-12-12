@@ -303,12 +303,10 @@ task("sips:populate", "Create SIP tx object to Propose to Sovryn Governance")
             { gasLimit: 6500000, gasPrice: 66e6 }
         );
 
-        console.log(tx);
-
         delete tx.from;
-        logger.warning("==================== populated tx start ====================");
-        logger.info(tx.toString());
-        logger.warning("==================== populated tx end   =================");
+        logger.warning("==================== populated tx data start ====================");
+        logger.info(`${tx.data}`);
+        logger.warning("==================== populated tx data end   =================");
         return tx;
     });
 task("sips:decode-sip-data", "Decodes SIP data and writes it to a file")
