@@ -352,8 +352,10 @@ const sip0071 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
     Therefore, it is a solid time to restore a functional two-sided market where 
     individuals can take the trade of minting new ZUSD with the risk of getting redeemed.
 
-    All Defi Protocols are confidence games. Bitocracy is a private entity that issues private currencies backed by BTC. 
-    Therefore, it is important to consider public optics and present the platform as reliable and trustworthy.
+    All Defi Protocols are confidence games.
+    Bitocracy is a private entity that issues private currencies backed by BTC. 
+    Therefore, it is important to consider public optics and
+    present the platform as reliable and trustworthy.
 
     Reopening ZUSD minting will generate more revenue for Bitocracy stakers. 
     The market will revalue the SOV token to a higher price. 
@@ -362,14 +364,17 @@ const sip0071 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
 
     ## Why 13%
 
-    The number we have chosen is close to the current interest rate of DLLR but not too high that speculators won't pay. 
+    The number we have chosen is close to the current interest rate of DLLR
+    but not too high that speculators won't pay. 
     The number should be lower than the interest rate of DLLR simply
-    because minting ZUSD requires more collateral (average 530%) to maintain without significant redemption risk.
+    because minting ZUSD requires more collateral (average 560%)
+    to maintain without significant redemption risk.
 
     The number is derived from the golden ratio.
     5 \* 1.618^2 = 13.08962
 
-    The 13% fee will significantly restrict the growth of the ZUSD supply but not be too high to stop the growth completely.
+    The 13% fee will significantly restrict the growth of the ZUSD supply
+    but not be too high to stop the growth completely.
 
     ## Proposed changes
 
