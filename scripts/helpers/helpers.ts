@@ -10,6 +10,7 @@ import {
     Interface,
     EventLog,
     Log,
+    Addressable,
 } from "ethers";
 
 import { TransactionReceipt, TransactionResponse } from "@ethersproject/providers";
@@ -61,7 +62,7 @@ const signWithMultisig = async (hre: HardhatRuntimeEnvironment, multisigAddress,
     await (await multisig.confirmTransaction(txId)).wait();
     // console.log("Required signatures:", await multisig.required());
     console.log("Signed. Details:");
-    await multisigCheckTx(txId, multisig.target);
+    await multisigCheckTx(hre, txId, multisig.target);
 };
 
 const multisigAddOwner = async (hre: HardhatRuntimeEnvironment, addAddress, sender) => {
@@ -116,14 +117,13 @@ const multisigExecuteTx = async (
 ) => {
     const {
         ethers,
-        deployments: { get },
+        deployments: { get, getArtifact },
     } = hre;
     const signer = await ethers.getSigner(sender);
-    const multisig = await ethers.getContractAt(
-        "MultiSigWallet",
-        multisigAddress === undefined ? (await get("MultiSigWallet")).address : multisigAddress,
-        signer
-    );
+    //let multisigArtifact = await getArtifact("MultiSigWallet");
+    const multisigDeployment = await get("MultiSigWallet");
+    const multisig = await ethers.getContractAt(multisigDeployment.abi, multisigDeployment.address);
+
     console.log("Executing multisig txId", txId, "...");
     const gasEstimated = ethers.toNumber(await multisig.executeTransaction.estimateGas(txId));
     console.log("Estimated Gas:", gasEstimated);
@@ -155,19 +155,18 @@ const multisigExecuteTx = async (
     logger.warn("===============================================================================");
     logger.success("DONE. Details:");
     console.log("Tx hash:", receipt.transactionHash);
-    console.log("Gas used:", receipt.gasUsed.toNumber());
-    await multisigCheckTx(txId, multisig.target);
+    console.log(`Gas used:, ${receipt.gasUsed}`);
+    await multisigCheckTx(hre, txId, multisig.target);
     logger.warn("===============================================================================");
 };
 
 const multisigCheckTx = async (
     hre: HardhatRuntimeEnvironment,
-    txId,
-    multisigAddress: string | undefined = undefined
+    txId: string,
+    multisigAddress: string | Addressable | undefined = undefined
 ) => {
     const {
-        ethers,
-        deployments: { get },
+        ethers
     } = hre;
     let multisig = (await ethers.getContract("MultiSigWallet")) as MultiSigWallet;
     if (multisigAddress !== undefined) {
@@ -220,7 +219,7 @@ const multisigRevokeConfirmation = async (
     // console.log("Required signatures:", await multisig.required());
     console.log(`Confirmation of txId ${txId} revoked.`);
     console.log("Details:");
-    await multisigCheckTx(txId, multisig.target);
+    await multisigCheckTx(hre, txId, multisig.target);
 };
 
 const parseEthersLogToValue = (parsed) => {

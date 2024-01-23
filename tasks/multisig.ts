@@ -10,7 +10,7 @@ import {
 } from "../scripts/helpers/helpers";
 
 task("multisig:sign-tx", "Sign multisig tx")
-    .addParam("id", "Multisig transaction to sign", undefined, types.string)
+    .addPositionalParam("id", "Multisig transaction to sign", undefined, types.string)
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ id, signer }, hre) => {
         const {
@@ -49,7 +49,7 @@ task("multisig:sign-txs", "Sign multiple multisig tx")
     });
 
 task("multisig:execute-tx", "Execute multisig tx by one of tx signers")
-    .addParam("id", "Multisig transaction to sign", undefined, types.string)
+    .addPositionalParam("id", "Multisig transaction to sign", undefined, types.string)
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ id, signer }, hre) => {
         const signerAcc = (await hre.getNamedAccounts())[signer];
@@ -57,13 +57,13 @@ task("multisig:execute-tx", "Execute multisig tx by one of tx signers")
     });
 
 task("multisig:check-tx", "Check multisig tx")
-    .addParam("id", "Multisig transaction id to check", undefined, types.string)
+    .addPositionalParam("id", "Multisig transaction id to check", undefined, types.string)
     .setAction(async (taskArgs, hre) => {
         await multisigCheckTx(hre, taskArgs.id);
     });
 
 task("multisig:check-txs", "Check multiple multisig txs")
-    .addParam("ids", "Multisig transaction ids list to check", undefined, types.string)
+    .addPositionalParam("ids", "Multisig transaction ids list to check", undefined, types.string)
     .setAction(async ({ ids }, hre) => {
         const txnArray = ids.split(",");
         for (let txId of txnArray) {
@@ -79,7 +79,7 @@ task("multisig:check-txs", "Check multiple multisig txs")
     });
 
 task("multisig:revoke-sig", "Revoke multisig tx confirmation")
-    .addParam("id", "Multisig transaction to revoke confirmation from", undefined, types.string)
+    .addPositionalParam("id", "Multisig transaction to revoke confirmation from", undefined, types.string)
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ id, signer }, hre) => {
         const signerAcc = (await hre.getNamedAccounts())[signer];
