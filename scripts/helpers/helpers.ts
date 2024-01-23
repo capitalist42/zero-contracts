@@ -162,7 +162,7 @@ const multisigExecuteTx = async (
 
 const multisigCheckTx = async (
     hre: HardhatRuntimeEnvironment,
-    txId: string,
+    txId: any,
     multisigAddress: string | Addressable | undefined = undefined
 ) => {
     const {
