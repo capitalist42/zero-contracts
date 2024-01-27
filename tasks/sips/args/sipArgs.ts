@@ -402,6 +402,67 @@ const sip0071 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
     };
 };
 
+const sip0075 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> => {
+    const { ethers, deployments } = hre;
+
+    const zeroBaseParamsContract = await deployments.get("LiquityBaseParams");
+    const newBorrowingFeeFloor = ethers.parseEther("0.08");
+    const encodedNewBorrowingFeeFloor = ethers.AbiCoder.defaultAbiCoder().encode(
+        ["uint256"],
+        [newBorrowingFeeFloor]
+    );
+    const title = "SIP-0075: Reduce Zero Origination Fee";
+    const link = "https://forum.sovryn.com/t/sip-0075-reduce-zero-origination-fee";
+    const summary = "Reduce Zero Origination Fee Floor to 8%";
+    const text = `
+    ## Summary
+
+    If approved, this proposal will reduce ZUSD origination fee flor in the Sovryn Zero protocol from 13% to 8%. 
+
+    ## Background
+
+    Six months ago, the origination fee floor of Zero Protocol was raised to 99% with SIP-0066.
+    Essentially, Bitocracy paused the minting of ZUSD by setting extremely high fees to maintain the DLLR peg.
+    Two months ago, Zero was „reopened“ by setting the origination fee to 13% with SIP-0071. This fee was deliberately set quite high in order to cautiously ramp up the system again and achieve the assumed balance between supply and demand for $DLLR.
+
+    Since then several key observations were made:
+    •    The total supply of ZUSD decreased from approximately 6.69 million (start SIP-0066) to 4.58 million (start SIP-0071) to 3.85 million (now).
+    •    Numbers of LoC’s declined from 150 (start SIP-0066) to 88 (start SIP-0071) to 83 (now).
+    •    The total collateral ratio increased from around 372% (SIP-0066) to 530% (SIP-0071) to 604% (now).
+    •    From SIP-0066 to SIP-0071 (8/23-12/23), Zero fee revenue was 15k USD. Since SIP-0071 (01/24) (total Zero fee revenue is 34k USD).
+
+    ## Motivation
+
+    Despite reopening Zero, we can still see a decline in the metrics shown above. 
+    Large parts of the excess ZUSD supply has been removed.
+    The current 10% interest rate of DLLR lending pool also indicates strong demand.
+    Therefore, we believe it is a good time to make Zero more accessible and to increase protocol revenue.
+    Individual users should make sure they understand the system and specifically, redemptions.
+    If significantly more redemptions occur than expected, Sovryn can also use the increased revenue as a safety mechanism to incentivize the holding of $DLLR via $SOV rewards.
+
+    ## Proposed changes
+    If approved, the origination fee will fluctuate between 8% and 100%.
+    The following change will be made to the Zero Protocol base parameters:
+    •    Updating “BORROWING_FEE_FLOOR” from 13% to 8% by calling \`setBorrowingFeeFloor(uint256)\`
+    on the \`0xf8B04A36c36d5DbD1a9Fe7B74897c609d6A17aa2\` contract
+    with the encoded data \`0x000000000000000000000000000000000000000000000000011c37937e080000\`.
+
+    ## License
+
+    Copyright and related rights waived via [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+    `;
+    const description: string = `${title}\n${link}\n${summary}\n---\n${text}`;
+    return {
+        args: {
+            targets: [zeroBaseParamsContract.address],
+            values: [0],
+            signatures: ["setBorrowingFeeFloor(uint256)"],
+            data: [encodedNewBorrowingFeeFloor],
+            description: description,
+        },
+        governor: "GovernorOwner",
+    };
+};
 
 const sipArgs = {
     zeroMyntIntegrationSIP,
@@ -412,6 +473,7 @@ const sipArgs = {
     sip0062,
     zeroFeesUpdateSip0066,
     sip0071,
+    sip0075
 };
 
 export default sipArgs;
