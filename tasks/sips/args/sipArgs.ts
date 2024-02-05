@@ -417,7 +417,7 @@ const sip0075 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
     const text = `
     ## Summary
 
-    If approved, this proposal will reduce ZUSD origination fee flor in the Sovryn Zero protocol from 13% to 8%.
+    If approved, this proposal will reduce ZUSD origination fee floor in the Sovryn Zero protocol from 13% to 8%.
 
     ## Background
 
