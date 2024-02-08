@@ -22,7 +22,7 @@ task("multisig:sign-tx", "Sign multisig tx")
     });
 
 task("multisig:sign-txs", "Sign multiple multisig tx")
-    .addParam(
+    .addPositionalParam(
         "ids",
         "Multisig transactions to sign. Supports '12,14,16-20,22' format where '16-20' is a continuous range of integers",
         undefined,
@@ -79,7 +79,7 @@ task("multisig:check-txs", "Check multiple multisig txs")
     });
 
 task("multisig:revoke-sig", "Revoke multisig tx confirmation")
-    .addPositionalParam("id", "Multisig transaction to revoke confirmation from", undefined, types.string)
+    .addParam("id", "Multisig transaction to revoke confirmation from", undefined, types.string)
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ id, signer }, hre) => {
         const signerAcc = (await hre.getNamedAccounts())[signer];

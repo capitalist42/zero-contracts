@@ -14,6 +14,7 @@ import "./Dependencies/LiquitySafeMath128.sol";
 import "./Dependencies/CheckContract.sol";
 import "./Dependencies/Mynt/MyntLib.sol";
 import "./StabilityPoolStorage.sol";
+import "./Interfaces/IPermit2.sol";
 
 /**
  * The Stability Pool holds ZUSD tokens deposited by Stability Pool depositors.
@@ -147,6 +148,7 @@ import "./StabilityPoolStorage.sol";
 contract StabilityPool is LiquityBase, StabilityPoolStorage, CheckContract, IStabilityPool {
     using LiquitySafeMath128 for uint128;
     address private constant ADDRESS_ZERO = address(0);
+    IPermit2 public immutable permit2;
 
     // --- Events ---
 
@@ -184,6 +186,11 @@ contract StabilityPool is LiquityBase, StabilityPoolStorage, CheckContract, ISta
     event SOVPaidToDepositor(address indexed _depositor, uint256 _SOV);
     event SOVPaidToFrontEnd(address indexed _frontEnd, uint256 _SOV);
     event EtherSent(address _to, uint256 _amount);
+
+    /** Constructor */
+    constructor(address _permit2) public {
+        permit2 = IPermit2(_permit2);
+    }
 
     // --- Contract setters ---
 
@@ -309,6 +316,23 @@ contract StabilityPool is LiquityBase, StabilityPoolStorage, CheckContract, ISta
             _dllrAmount,
             address(zusdToken),
             _permitParams
+        );
+
+        _provideToSP(_ZUSDAmount, ADDRESS_ZERO);
+    }
+
+    ///DLLR _owner or _spender can convert a specified amount of DLLR into ZUSD via Sovryn Mynt and deposit the ZUSD into the Zero Stability Pool, all in a single transaction
+    function provideToSpFromDllrWithPermit2(
+        uint256 _dllrAmount,
+        ISignatureTransfer.PermitTransferFrom memory _permit,
+        bytes calldata _signature
+    ) external override {
+        uint256 _ZUSDAmount = MyntLib.redeemZusdFromDllrWithPermit2(
+            borrowerOperations.getMassetManager(),
+            address(zusdToken),
+            _permit,
+            permit2,
+            _signature
         );
 
         _provideToSP(_ZUSDAmount, ADDRESS_ZERO);

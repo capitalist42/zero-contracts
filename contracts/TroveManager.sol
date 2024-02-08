@@ -16,8 +16,12 @@ import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
 import "./Dependencies/TroveManagerBase.sol";
 import "./TroveManagerStorage.sol";
+import "./Interfaces/IPermit2.sol";
 
 contract TroveManager is TroveManagerBase, CheckContract, ITroveManager {
+    /** CONSTANT / IMMUTABLE VARIABLE ONLY */
+    IPermit2 public immutable permit2;
+
     event FeeDistributorAddressChanged(address _feeDistributorAddress);
     event TroveManagerRedeemOpsAddressChanged(address _troveManagerRedeemOps);
     event LiquityBaseParamsAddressChanges(address _borrowerOperationsAddress);
@@ -34,7 +38,9 @@ contract TroveManager is TroveManagerBase, CheckContract, ITroveManager {
     event ZEROStakingAddressChanged(address _zeroStakingAddress);
 
     ///@param _bootstrapPeriod During bootsrap period redemptions are not allowed
-    constructor(uint256 _bootstrapPeriod) public TroveManagerBase(_bootstrapPeriod) {}
+    constructor(uint256 _bootstrapPeriod, address _permit2) public TroveManagerBase(_bootstrapPeriod) {
+        permit2 = IPermit2(_permit2);
+    }
 
     // --- Dependency setter ---
     function setAddresses(
@@ -1181,6 +1187,24 @@ contract TroveManager is TroveManagerBase, CheckContract, ITroveManager {
         uint256 _maxIterations,
         uint256 _maxFeePercentage,
         IMassetManager.PermitParams calldata _permitParams
+    ) external override {
+        (bool success, bytes memory returndata) = troveManagerRedeemOps.delegatecall(msg.data);
+        require(success, string(returndata));
+    }
+
+    /// @dev    this function forwards the call to the troveManagerRedeemOps in a delegate call fashion
+    ///         so the parameters are not needed
+    ///DLLR _owner or _spender can use Sovryn Mynt to convert DLLR to ZUSD, then use the Zero redemption mechanism to redeem ZUSD for RBTC, all in a single transaction
+    function redeemCollateralViaDllrWithPermit2(
+        uint256 _dllrAmount,
+        address _firstRedemptionHint,
+        address _upperPartialRedemptionHint,
+        address _lowerPartialRedemptionHint,
+        uint256 _partialRedemptionHintNICR,
+        uint256 _maxIterations,
+        uint256 _maxFeePercentage,
+        ISignatureTransfer.PermitTransferFrom memory _permit,
+        bytes calldata _signature
     ) external override {
         (bool success, bytes memory returndata) = troveManagerRedeemOps.delegatecall(msg.data);
         require(success, string(returndata));

@@ -1331,6 +1331,23 @@ class TestHelper {
   // ----------------- repayZusdFromDLLR ------------------ //
 
 
+  static async repayZusdFromDLLRWithPermit2(account, contracts, amount, permitTransferFrom, signature) {
+    const { newColl, newDebt } = await this.getCollAndDebtFromRepayZUSD(
+      contracts,
+      account,
+      amount
+    );
+    const { upperHint, lowerHint } = await this.getBorrowerOpsListHint(
+      contracts,
+      newColl,
+      newDebt
+    );
+
+    return await contracts.borrowerOperations.repayZusdFromDLLRWithPermit2(amount.toString(), upperHint, lowerHint, permitTransferFrom, signature, {
+      from: account
+    });
+  }
+
   static async repayZusdFromDLLR(account, contracts, amount, permission) {
     const { newColl, newDebt } = await this.getCollAndDebtFromRepayZUSD(
       contracts,
@@ -1678,12 +1695,50 @@ class TestHelper {
       params.reduce((acc, p) => acc + this.formatParam(p), "")
     );
   }
+
+  static toDeadline(expiration) {
+    return Math.floor((Date.now() + expiration) / 1000)
+  }
+  
+  static extractSignature(signature) {
+    const r = signature.slice(0, 66);
+    const s = '0x' + signature.slice(66, 130);
+    const v = '0x' + signature.slice(130, 132);
+  
+    return {v, r, s};
+  }
+
+  static generateNonce() {
+    return BigInt(Math.floor(Date.now() + Math.random() * 100));
+  }
+  
+  static bitmapPositions(nonce) {
+    // Simulate logic to calculate wordPos and bitPos based on nonce
+    const wordPos = Math.floor(nonce / 256);
+    const bitPos = nonce % 256;
+    return { wordPos, bitPos };
+  }
+  
+  static async isUsedNonce(permit2, from, nonce) {
+    const { wordPos, bitPos } = this.bitmapPositions(nonce);
+    const bit = BigInt(1) << BigInt(bitPos);
+  
+    const nonceBitmapOnchain = BigInt((await permit2.nonceBitmap(from, wordPos)));
+    const flipped = nonceBitmapOnchain ^ bit;
+  
+    if ((flipped & bit) === BigInt(0)) {
+      return true;
+    }
+  
+    return false;
+  }
 }
 
 TestHelper.ZERO_ADDRESS = "0x" + "0".repeat(40);
 TestHelper.maxBytes32 = "0x" + "f".repeat(64);
 TestHelper._100pct = "1000000000000000000";
 TestHelper.latestRandomSeed = 31337;
+TestHelper.MAX_UINT_256 = web3.utils.toBN(2).pow(web3.utils.toBN(256)).sub(web3.utils.toBN(1));
 
 module.exports = {
   TestHelper,

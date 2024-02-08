@@ -402,6 +402,78 @@ const sip0071 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> =>
     };
 };
 
+const sipSOV3564 = async (hre: HardhatRuntimeEnvironment): Promise<ISipArgument> => {
+    const {
+        ethers,
+        deployments: { get },
+    } = hre;
+
+    // @todo for the mainnet deployment first run `yarn deploy --tags 'StabilityPool,BorrowerOperations,TroveManager' --network rskSovrynMainnet`
+    const newStabilityPoolImplementation = (await get("StabilityPool_Implementation")).address;
+    const newBorrowerOperationsImplementation = (await get("BorrowerOperations_Implementation")).address;
+    const newTroveManagerImplementation = (await get("TroveManager_Implementation")).address;
+
+    console.log(`New stability pool implementation: ${newStabilityPoolImplementation}`);
+    console.log(`New borrower operations implementation: ${newBorrowerOperationsImplementation}`);
+    console.log(`New trove manager implementation: ${newTroveManagerImplementation}`);
+
+    const stabilityPoolProxyDeployment = await get("StabilityPool_Proxy");
+    const borrowerOperationsDeployment = await get("BorrowerOperations_Proxy");
+    const troveManagerDeployment = await get("TroveManager_Proxy");
+    const troveManagerRedeemOpsDeployment = await get("TroveManagerRedeemOps");
+
+
+    const errorLog: string[] = [];
+    const stabilityPoolProxy = await ethers.getContractAt(stabilityPoolProxyDeployment.abi, stabilityPoolProxyDeployment.address);
+    if ((await stabilityPoolProxy.getImplementation()) === newStabilityPoolImplementation) {
+        errorLog.push(
+            `Implementation StabilityPool has not changed: ${newStabilityPoolImplementation}`
+        );
+    }
+
+    const borrrowerOperationsProxy = await ethers.getContractAt(borrowerOperationsDeployment.abi, borrowerOperationsDeployment.address);
+    if ((await borrrowerOperationsProxy.getImplementation()) === newBorrowerOperationsImplementation) {
+        errorLog.push(
+            `Implementation BorrowerOperations has not changed: ${newBorrowerOperationsImplementation}`
+        );
+    }
+
+    const troveManagerPoxy = await ethers.getContractAt(troveManagerDeployment.abi, troveManagerDeployment.address);
+    if ((await troveManagerPoxy.getImplementation()) === newTroveManagerImplementation) {
+        errorLog.push(
+            `Implementation TroveManager has not changed: ${newTroveManagerImplementation}`
+        );
+    }
+
+    if (errorLog.length > 0) {
+        logger.error(errorLog);
+        throw Error("^");
+    }
+
+    const args: ISipArgument = {
+        args: {
+            targets: [stabilityPoolProxyDeployment.address, borrowerOperationsDeployment.address, troveManagerDeployment.address, troveManagerDeployment.address],
+            values: [0, 0, 0, 0],
+            signatures: ["setImplementation(address)", "setImplementation(address)", "setImplementation(address)", "setTroveManagerRedeemOps(address)"],
+            data: [
+                ethers.AbiCoder.defaultAbiCoder().encode(
+                    ["address"],
+                    [newStabilityPoolImplementation]
+                ),
+                ethers.AbiCoder.defaultAbiCoder().encode(["address"], [newBorrowerOperationsImplementation]),
+                ethers.AbiCoder.defaultAbiCoder().encode(["address"], [newTroveManagerImplementation]),
+                ethers.AbiCoder.defaultAbiCoder().encode(["address"], [troveManagerRedeemOpsDeployment.address]),
+            ],
+            // @todo update sip description
+            description:
+                "SIP-SOV3564: upgrade stabilityPool, borrowerOperations, troveManager, setTroveManagerRedeemOps",
+        },
+        governor: "GovernorOwner",
+    };
+
+    return args;
+};
+
 
 const sipArgs = {
     zeroMyntIntegrationSIP,
@@ -412,6 +484,7 @@ const sipArgs = {
     sip0062,
     zeroFeesUpdateSip0066,
     sip0071,
+    sipSOV3564,
 };
 
 export default sipArgs;
