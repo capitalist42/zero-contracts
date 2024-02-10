@@ -1,4 +1,5 @@
 const deploymentHelper = require("../../utils/js/deploymentHelpers.js");
+const { AllowanceProvider, PermitTransferFrom, SignatureTransfer } = require("@uniswap/permit2-sdk");
 const testHelpers = require("../../utils/js/testHelpers.js");
 const th = testHelpers.TestHelper;
 const dec = th.dec;
@@ -57,6 +58,7 @@ contract('StabilityPool', async accounts => {
   let communityIssuance;
   let massetManager;
   let nueMockToken;
+  let permit2;
 
   let gasPriceInWei;
 
@@ -73,8 +75,9 @@ contract('StabilityPool', async accounts => {
       alice_signer = (await ethers.getSigners())[5];
 
       contracts = await deploymentHelper.deployLiquityCore();
-      contracts.troveManager = await TroveManagerTester.new();
-      contracts.borrowerOperations = await BorrowerOperationsTester.new();
+      permit2 = contracts.permit2;
+      contracts.troveManager = await TroveManagerTester.new(permit2.address);
+      contracts.borrowerOperations = await BorrowerOperationsTester.new(permit2.address);
       contracts.zusdToken = await ZUSDToken.new();
       await contracts.zusdToken.initialize(
         contracts.troveManager.address,
@@ -127,6 +130,64 @@ contract('StabilityPool', async accounts => {
 
     afterEach(async () => {
       await revertToSnapshot();
+    });
+
+    // --- provideToSpFromDLLR() --- //
+    it("provideToSpFromDLLR(): decrease DLLR amount and updates the user's record in StabilityPool with permit2", async () => {
+      // --- SETUP --- 
+      const spAmount = toBN(dec(2000, 18)); //await openTrove({ extraZUSDAmount: toBN(dec(2000, 18)), ICR: toBN(dec(2, 18)), extraParams: { from: whale } })
+      const nueBalance_BeforeOpenTrove = await nueMockToken.balanceOf(alice);
+      assert.equal(nueBalance_BeforeOpenTrove, 0, `${nueBalance_BeforeOpenTrove}`);
+      // open a trove to get ZUSD and deposit ZUSD to Mynt to get DLLR
+      await openNueTrove({ extraZUSDAmount: spAmount, ICR: toBN(dec(2, 18)), extraParams: { from: alice } });
+      // get ERC2612 permission from alice for stability pool to spend DLLR amount
+      await nueMockToken.approve(permit2.address, th.MAX_UINT_256, { from: alice });
+      const nonce = th.generateNonce();
+      const deadline = th.toDeadline(1000 * 60 * 60 * 30 /** 30 minutes */);
+      const permitTransferFrom = {
+        permitted: {
+            token: nueMockToken.address,
+            amount: spAmount.toString(),
+        },
+        spender: stabilityPool.address.toLowerCase(),
+        nonce: nonce.toString(),
+        deadline: deadline
+      }
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+
+      const { domain, types, values } = SignatureTransfer.getPermitData(permitTransferFrom, permit2.address, chainId);
+
+      const signature = await alice_signer.signTypedData(domain, types, values);
+
+      // --- TEST ---
+      // check user's deposit record before
+      const alice_depositRecord_Before = await stabilityPool.deposits(alice);
+      assert.equal(alice_depositRecord_Before[0], 0);
+
+      const nueBalance_BeforeSP = await nueMockToken.balanceOf(alice);
+      assert(nueBalance_BeforeSP.gt(0) && nueBalance_BeforeSP.lt(toBN(dec(spAmount, 18))), `${nueBalance_BeforeSP} => ${spAmount}`);
+
+      const zusdBalance_Before = await zusdToken.balanceOf(alice);
+      assert.equal(zusdBalance_Before, 0);
+
+      expect(await th.isUsedNonce(permit2, alice_signer.address, nonce.toString())).to.equal(false);
+
+      // provideToSP()
+      await stabilityPool.provideToSpFromDllrWithPermit2(spAmount.toString(), permitTransferFrom, signature, { from: alice });
+
+      // Check nonces
+      expect(await th.isUsedNonce(permit2, alice_signer.address, nonce.toString())).to.equal(true);
+
+      // check balances
+      const alice_depositRecord_After = (await stabilityPool.deposits(alice))[0];
+      assert(alice_depositRecord_After.eq(spAmount), `${alice_depositRecord_After} => ${spAmount}`);
+
+      const nueBalance_AfterSP = await nueMockToken.balanceOf(alice);
+      assert(nueBalance_AfterSP.eq(nueBalance_BeforeSP.sub(spAmount)), `${nueBalance_AfterSP} => ${nueBalance_BeforeSP.sub(spAmount)}`);
+
+      const zusdBalance_After = await zusdToken.balanceOf(alice);
+      assert.equal(zusdBalance_After, 0);
     });
 
     // --- provideToSpFromDLLR() --- //

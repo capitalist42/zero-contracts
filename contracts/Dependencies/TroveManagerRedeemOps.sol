@@ -6,10 +6,14 @@ pragma experimental ABIEncoderV2;
 import "../Dependencies/Mynt/MyntLib.sol";
 import "../Interfaces/IBorrowerOperations.sol";
 import "./TroveManagerBase.sol";
+import "../Interfaces/IPermit2.sol";
 
 /// This contract is designed to be used via delegatecall from the TroveManager contract
 /// TroveManagerBase constructor param is bootsrap period when redemptions are not allowed
 contract TroveManagerRedeemOps is TroveManagerBase {
+    /** CONSTANT / IMMUTABLE VARIABLE ONLY */
+    IPermit2 public immutable permit2;
+
     /** Send _ZUSDamount ZUSD to the system and redeem the corresponding amount of collateral from as many Troves as are needed to fill the redemption
       request.  Applies pending rewards to a Trove before reducing its debt and coll.
      
@@ -32,7 +36,10 @@ contract TroveManagerRedeemOps is TroveManagerBase {
       to redeem later.
      */
 
-    constructor(uint256 _bootstrapPeriod) public TroveManagerBase(_bootstrapPeriod) {}
+    /** Constructor */
+    constructor(uint256 _bootstrapPeriod, address _permit2) public TroveManagerBase(_bootstrapPeriod) {
+        permit2 = IPermit2(_permit2);
+    }
 
     function redeemCollateral(
         uint256 _ZUSDamount,
@@ -192,6 +199,37 @@ contract TroveManagerRedeemOps is TroveManagerBase {
             address(_zusdToken),
             _permitParams
         );
+        _redeemCollateral(
+            _zusdAmount,
+            _firstRedemptionHint,
+            _upperPartialRedemptionHint,
+            _lowerPartialRedemptionHint,
+            _partialRedemptionHintNICR,
+            _maxIterations,
+            _maxFeePercentage
+        );
+    }
+
+    ///DLLR _owner can use Sovryn Mynt to convert DLLR to ZUSD, then use the Zero redemption mechanism to redeem ZUSD for RBTC, all in a single transaction
+    function redeemCollateralViaDllrWithPermit2(
+        uint256 _dllrAmount,
+        address _firstRedemptionHint,
+        address _upperPartialRedemptionHint,
+        address _lowerPartialRedemptionHint,
+        uint256 _partialRedemptionHintNICR,
+        uint256 _maxIterations,
+        uint256 _maxFeePercentage,
+        ISignatureTransfer.PermitTransferFrom memory _permit,
+        bytes calldata _signature
+    ) external {
+        uint256 _zusdAmount = MyntLib.redeemZusdFromDllrWithPermit2(
+            IBorrowerOperations(borrowerOperationsAddress).getMassetManager(),
+            address(_zusdToken),
+            _permit,
+            permit2,
+            _signature
+        );
+
         _redeemCollateral(
             _zusdAmount,
             _firstRedemptionHint,

@@ -10,6 +10,7 @@ const TroveManagerTester = artifacts.require("TroveManagerTester");
 const ZUSDTokenTester = artifacts.require("./ZUSDTokenTester");
 const MassetManagerTester = artifacts.require("MassetManagerTester");
 const NueMockToken = artifacts.require("NueMockToken");
+const { AllowanceProvider, PermitTransferFrom, SignatureTransfer } = require("@uniswap/permit2-sdk");
 
 const th = testHelpers.TestHelper;
 
@@ -69,6 +70,7 @@ contract("BorrowerOperations", async accounts => {
   let zeroToken;
   let massetManager;
   let nueMockToken;
+  let permit2;
 
   let contracts;
 
@@ -136,9 +138,11 @@ contract("BorrowerOperations", async accounts => {
   const testCorpus = ({ withProxy = false }) => {
     before(async () => {
       contracts = await deploymentHelper.deployLiquityCore();
-      contracts.borrowerOperations = await BorrowerOperationsTester.new();
+      permit2 = contracts.permit2;
+
+      contracts.borrowerOperations = await BorrowerOperationsTester.new(permit2.address);
       contracts.massetManager = await MassetManagerTester.new();
-      contracts.troveManager = await TroveManagerTester.new();
+      contracts.troveManager = await TroveManagerTester.new(permit2.address);
       contracts = await deploymentHelper.deployZUSDTokenTester(contracts);
       const ZEROContracts = await deploymentHelper.deployZEROTesterContractsHardhat(multisig);
 
@@ -2053,6 +2057,62 @@ contract("BorrowerOperations", async accounts => {
     //Zero Line of Credit owner can convert a specified amount of DLLR to ZUSD via Sovryn Mynt and partially or fully repay their ZUSD debt, all in a single transaction
     // Full repayment of ZUSD reverts when it would leave trove with net debt < minimum net debt
     // Use borrowerOperations.closeNueTrove(permission)
+    it("repayZusdFromDLLR(): repays partial ZUSD debt - decreases user's ZUSDToken balance by correct amount (using permit2)", async () => {
+      await openNueTrove({
+        extraZUSDAmount: toBN(dec(10000, 18)),
+        ICR: toBN(dec(10, 18)),
+        extraParams: { from: alice }
+      });
+
+      const debtBefore = await getTroveEntireDebt(alice);
+      const collBefore = await getTroveEntireColl(alice);
+      assert.isTrue(debtBefore.gt(toBN("0")));
+      assert.isTrue(collBefore.gt(toBN("0")));
+
+      const nueBalance_Before = await nueMockToken.balanceOf(alice);
+      const decreaseAmount = toBN(dec(50, 16));
+
+      // Alice adjusts trove coll and debt decrease (-0.5 ETH, -50ZUSD)
+      await nueMockToken.approve(permit2.address, th.MAX_UINT_256, { from: alice });
+      const nonce = th.generateNonce();
+      const deadline = th.toDeadline(1000 * 60 * 60 * 30 /** 30 minutes */);
+      const permitTransferFrom = {
+        permitted: {
+            token: nueMockToken.address,
+            amount: decreaseAmount.toString(),
+        },
+        spender: borrowerOperations.address.toLowerCase(),
+        nonce: nonce.toString(),
+        deadline: deadline
+      }
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+
+      const { domain, types, values } = SignatureTransfer.getPermitData(permitTransferFrom, permit2.address, chainId);
+
+      const signature = await alice_signer.signTypedData(domain, types, values);
+
+      expect(await th.isUsedNonce(permit2, alice_signer.address, nonce.toString())).to.equal(false);
+
+      await th.repayZusdFromDLLRWithPermit2(alice, contracts, decreaseAmount, permitTransferFrom, signature);
+
+      // Check nonces
+      expect(await th.isUsedNonce(permit2, alice_signer.address, nonce.toString())).to.equal(true);
+
+      const debtAfter = await getTroveEntireDebt(alice);
+      const collAfter = await getTroveEntireColl(alice);
+      const nueBalance_After = await nueMockToken.balanceOf(alice);
+
+      assert.isTrue(debtAfter.eq(debtBefore.sub(toBN(dec(50, 16)))), `debtAfter: ${debtAfter}, debtBefore: ${debtBefore}`);
+      assert.isTrue(collAfter.eq(collBefore), `collAfter: ${collAfter}, collBefore: ${collBefore}`);
+
+      assert.isTrue(nueBalance_After.eq(nueBalance_Before.sub(decreaseAmount)));
+    });
+
+    // --- repayZusdFromDLLR() --- //
+    //Zero Line of Credit owner can convert a specified amount of DLLR to ZUSD via Sovryn Mynt and partially or fully repay their ZUSD debt, all in a single transaction
+    // Full repayment of ZUSD reverts when it would leave trove with net debt < minimum net debt
+    // Use borrowerOperations.closeNueTrove(permission)
     it("repayZusdFromDLLR(): repays partial ZUSD debt - decreases user's ZUSDToken balance by correct amount", async () => {
       await openNueTrove({
         extraZUSDAmount: toBN(dec(10000, 18)),
@@ -3482,6 +3542,74 @@ contract("BorrowerOperations", async accounts => {
       th.assertIsApproximatelyEqual(collAfter, collBefore.add(toBN(dec(1, 16))), 10000);
     });
 
+    it("adjustNueTrove(): updates borrower's debt and coll with a decrease in both with permit2", async () => {
+      await openNueTrove({
+        extraZUSDAmount: toBN(dec(10000, 18)),
+        ICR: toBN(dec(10, 18)),
+        extraParams: { from: whale }
+      });
+
+      await openNueTrove({
+        extraZUSDAmount: toBN(dec(10000, 18)),
+        ICR: toBN(dec(10, 18)),
+        extraParams: { from: alice }
+      });
+
+      const debtBefore = await getTroveEntireDebt(alice);
+      const collBefore = await getTroveEntireColl(alice);
+      assert.isTrue(debtBefore.gt(toBN("0")));
+      assert.isTrue(collBefore.gt(toBN("0")));
+
+      const nueBalance_Before = await nueMockToken.balanceOf(alice);
+
+      const decreaseAmount = toBN(dec(50, 16));
+      // Alice adjusts trove coll and debt decrease (-0.5 ETH, -50ZUSD)
+      await nueMockToken.approve(permit2.address, th.MAX_UINT_256, { from: alice });
+      const nonce = th.generateNonce();
+      const deadline = th.toDeadline(1000 * 60 * 60 * 30 /** 30 minutes */);
+      const permitTransferFrom = {
+        permitted: {
+            token: nueMockToken.address,
+            amount: decreaseAmount.toString(),
+        },
+        spender: borrowerOperations.address.toLowerCase(),
+        nonce: nonce.toString(),
+        deadline: deadline
+      }
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+
+      const { domain, types, values } = SignatureTransfer.getPermitData(permitTransferFrom, permit2.address, chainId);
+
+      const signature = await alice_signer.signTypedData(domain, types, values);
+      
+      expect(await th.isUsedNonce(permit2, alice_signer.address, nonce.toString())).to.equal(false);
+
+      await borrowerOperations.adjustNueTroveWithPermit2(
+        th._100pct,
+        dec(500, "finney"),
+        decreaseAmount,
+        false,
+        alice,
+        alice,
+        permitTransferFrom,
+        signature,
+        { from: alice }
+      );
+
+      // Check nonces
+      expect(await th.isUsedNonce(permit2, alice_signer.address, nonce.toString())).to.equal(true);
+
+      const debtAfter = await getTroveEntireDebt(alice);
+      const collAfter = await getTroveEntireColl(alice);
+      const nueBalance_After = await nueMockToken.balanceOf(alice);
+
+      assert.isTrue(debtAfter.eq(debtBefore.sub(toBN(dec(50, 16)))));
+      assert.isTrue(collAfter.eq(collBefore.sub(toBN(dec(5, 17)))));
+
+      assert.isTrue(nueBalance_After.eq(nueBalance_Before.sub(decreaseAmount)));
+    });
+
     it("adjustNueTrove(): updates borrower's debt and coll with a decrease in both", async () => {
       await openNueTrove({
         extraZUSDAmount: toBN(dec(10000, 18)),
@@ -4215,6 +4343,67 @@ contract("BorrowerOperations", async accounts => {
 
       const aliceCollAfter = await getTroveEntireColl(alice);
       assert.equal(aliceCollAfter, "0");
+    });
+
+    it("closeNueTrove(): reduces a Trove's debt to zero with permit2", async () => {
+      const { zusdAmount } = await openNueTrove({
+        extraZUSDAmount: toBN(dec(10000, 18)),
+        ICR: toBN(dec(2, 18)),
+        extraParams: { from: dennis }
+      });
+
+      await openNueTrove({
+        extraZUSDAmount: toBN(dec(10000, 18)),
+        ICR: toBN(dec(2, 18)),
+        extraParams: { from: alice }
+      });
+
+      const aliceDebtBefore = await getTroveEntireColl(alice);
+      const dennisNUE = await nueMockToken.balanceOf(dennis);
+      assert.isTrue(aliceDebtBefore.gt(toBN("0")));
+      assert.isTrue(dennisNUE.gt(toBN("0")));
+
+      const expectedDebt = zusdAmount.add(await troveManager.getBorrowingFee(zusdAmount));
+
+      // To compensate borrowing fees
+      await nueMockToken.transfer(alice, dennisNUE.div(toBN(2)), { from: dennis });
+
+      const nueBalance_Before = await nueMockToken.balanceOf(alice);
+
+      // Alice attempts to close trove
+      const value = (await troveManager.getTroveDebt(alice)).sub(await borrowerOperations.ZUSD_GAS_COMPENSATION());
+
+      await nueMockToken.approve(permit2.address, th.MAX_UINT_256, { from: alice });
+      const nonce = th.generateNonce();
+      const deadline = th.toDeadline(1000 * 60 * 60 * 30 /** 30 minutes */);
+      const permitTransferFrom = {
+        permitted: {
+            token: nueMockToken.address,
+            amount: value.toString(),
+        },
+        spender: borrowerOperations.address.toLowerCase(),
+        nonce: nonce.toString(),
+        deadline: deadline
+      }
+      const network = await ethers.provider.getNetwork();
+      const chainId = network.chainId;
+
+      const { domain, types, values } = SignatureTransfer.getPermitData(permitTransferFrom, permit2.address, chainId);
+
+      const signature = await alice_signer.signTypedData(domain, types, values);
+
+      expect(await th.isUsedNonce(permit2, alice_signer.address, nonce.toString())).to.equal(false);
+
+      await borrowerOperations.closeNueTroveWithPermit2(permitTransferFrom, signature, { from: alice });
+
+      // Check nonces
+      expect(await th.isUsedNonce(permit2, alice_signer.address, nonce.toString())).to.equal(true);
+
+      const aliceCollAfter = await getTroveEntireColl(alice);
+      assert.equal(aliceCollAfter, "0");
+
+      const nueBalance_After = await nueMockToken.balanceOf(alice);
+      assert.isTrue(nueBalance_After.eq(nueBalance_Before.sub(expectedDebt)));
     });
 
     it("closeNueTrove(): reduces a Trove's debt to zero", async () => {

@@ -15,6 +15,7 @@ import "./Dependencies/CheckContract.sol";
 import "./Dependencies/console.sol";
 import "./BorrowerOperationsStorage.sol";
 import "./Dependencies/Mynt/MyntLib.sol";
+import "./Interfaces/IPermit2.sol";
 
 contract BorrowerOperations is
     LiquityBase,
@@ -22,6 +23,9 @@ contract BorrowerOperations is
     CheckContract,
     IBorrowerOperations
 {
+    /** CONSTANT / IMMUTABLE VARIABLE ONLY */
+    IPermit2 public immutable permit2;
+
     /* --- Variable container structs  ---
 
     Used to hold, return and assign variables inside a function, in order to avoid the error:
@@ -90,6 +94,11 @@ contract BorrowerOperations is
         BorrowerOperation operation
     );
     event ZUSDBorrowingFeePaid(address indexed _borrower, uint256 _ZUSDFee);
+
+    /** Constructor */
+    constructor(address _permit2) public {
+        permit2 = IPermit2(_permit2);
+    }
 
     // --- Dependency setters ---
 
@@ -357,6 +366,17 @@ contract BorrowerOperations is
         _adjustNueTrove(0, 0, _dllrAmount, false, _upperHint, _lowerHint, _permitParams);
     }
 
+    /// Repay ZUSD tokens to a Trove by DLLR: convert DLLR to ZUSD tokens, and then reduce the trove's debt accordingly
+    function repayZusdFromDLLRWithPermit2(
+        uint256 _dllrAmount,
+        address _upperHint,
+        address _lowerHint,
+        ISignatureTransfer.PermitTransferFrom memory _permit,
+        bytes calldata _signature
+    ) external override {
+        _adjustNueTroveWithPermit2(0, 0, _dllrAmount, false, _upperHint, _lowerHint, _permit, _signature);
+    }
+
     function adjustTrove(
         uint256 _maxFeePercentage,
         uint256 _collWithdrawal,
@@ -397,6 +417,29 @@ contract BorrowerOperations is
         );
     }
 
+    // in case of _isDebtIncrease = false MassetManager contract must have an approval of NUE tokens
+    function adjustNueTroveWithPermit2(
+        uint256 _maxFeePercentage,
+        uint256 _collWithdrawal,
+        uint256 _ZUSDChange,
+        bool _isDebtIncrease,
+        address _upperHint,
+        address _lowerHint,
+        ISignatureTransfer.PermitTransferFrom memory _permit,
+        bytes calldata _signature
+    ) external payable override {
+        _adjustNueTroveWithPermit2(
+            _maxFeePercentage,
+            _collWithdrawal,
+            _ZUSDChange,
+            _isDebtIncrease,
+            _upperHint,
+            _lowerHint,
+            _permit,
+            _signature
+        );
+    }
+
     // in case of _isDebtIncrease = false Masset Manager contract must have an approval of NUE tokens
     function _adjustNueTrove(
         uint256 _maxFeePercentage,
@@ -415,6 +458,47 @@ contract BorrowerOperations is
                 _ZUSDChange,
                 address(zusdToken),
                 _permitParams
+            );
+        }
+        _adjustSenderTrove(
+            msg.sender,
+            _collWithdrawal,
+            _ZUSDChange,
+            _isDebtIncrease,
+            _upperHint,
+            _lowerHint,
+            _maxFeePercentage,
+            address(this)
+        );
+        if (_isDebtIncrease && _ZUSDChange > 0) {
+            require(
+                zusdToken.approve(address(massetManager), _ZUSDChange),
+                "Failed to approve ZUSD amount for Mynt mAsset to redeem"
+            );
+            massetManager.mintTo(address(zusdToken), _ZUSDChange, msg.sender);
+        }
+    }
+
+    // in case of _isDebtIncrease = false Masset Manager contract must have an approval of NUE tokens
+    function _adjustNueTroveWithPermit2(
+        uint256 _maxFeePercentage,
+        uint256 _collWithdrawal,
+        uint256 _ZUSDChange,
+        bool _isDebtIncrease,
+        address _upperHint,
+        address _lowerHint,
+        ISignatureTransfer.PermitTransferFrom memory _permit,
+        bytes calldata _signature
+    ) internal {
+        require(address(massetManager) != address(0), "Masset address not set");
+
+        if (!_isDebtIncrease && _ZUSDChange > 0) {
+            MyntLib.redeemZusdFromDllrWithPermit2(
+                massetManager,
+                address(zusdToken),
+                _permit,
+                permit2,
+                _signature
             );
         }
         _adjustSenderTrove(
@@ -623,6 +707,22 @@ contract BorrowerOperations is
             address(zusdToken),
             _permitParams
         );
+        _closeTrove();
+    }
+
+    function closeNueTroveWithPermit2(ISignatureTransfer.PermitTransferFrom memory _permit, bytes calldata _signature) external override {
+        require(address(massetManager) != address(0), "Masset address not set");
+
+        uint256 debt = troveManager.getTroveDebt(msg.sender);
+
+        MyntLib.redeemZusdFromDllrWithPermit2(
+            massetManager,
+            address(zusdToken),
+            _permit,
+            permit2,
+            _signature
+        );
+
         _closeTrove();
     }
 

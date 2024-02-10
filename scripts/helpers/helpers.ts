@@ -122,7 +122,10 @@ const multisigExecuteTx = async (
     const signer = await ethers.getSigner(sender);
     //let multisigArtifact = await getArtifact("MultiSigWallet");
     const multisigDeployment = await get("MultiSigWallet");
-    const multisig = await ethers.getContractAt(multisigDeployment.abi, multisigDeployment.address);
+    const multisig = await ethers.getContractAt(
+        multisigDeployment.abi,
+        multisigDeployment.address
+    );
 
     console.log("Executing multisig txId", txId, "...");
     const gasEstimated = ethers.toNumber(await multisig.executeTransaction.estimateGas(txId));
@@ -165,9 +168,7 @@ const multisigCheckTx = async (
     txId: any,
     multisigAddress: string | Addressable | undefined = undefined
 ) => {
-    const {
-        ethers
-    } = hre;
+    const { ethers } = hre;
     let multisig = (await ethers.getContract("MultiSigWallet")) as MultiSigWallet;
     if (multisigAddress !== undefined) {
         multisig.attach(multisigAddress);

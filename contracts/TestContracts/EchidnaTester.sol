@@ -51,14 +51,14 @@ contract EchidnaTester {
 
     uint private numberOfTroves;
 
-    constructor() public payable {
+    constructor(address _permit2) public payable {
         liquityBaseParams = new LiquityBaseParams();
-        troveManagerRedeemOps = new TroveManagerRedeemOps(14 * 86400);
-        troveManager = new TroveManager(14 days);
-        borrowerOperations = new BorrowerOperations();
+        troveManagerRedeemOps = new TroveManagerRedeemOps(14 * 86400, _permit2);
+        troveManager = new TroveManager(14 days, _permit2);
+        borrowerOperations = new BorrowerOperations(_permit2);
         activePool = new ActivePool();
         defaultPool = new DefaultPool();
-        stabilityPool = new StabilityPool();
+        stabilityPool = new StabilityPool(_permit2);
         gasPool = new GasPool();
         zusdToken = new ZUSDToken();
         zusdToken.initialize(
