@@ -79,7 +79,12 @@ task("multisig:check-txs", "Check multiple multisig txs")
     });
 
 task("multisig:revoke-sig", "Revoke multisig tx confirmation")
-    .addParam("id", "Multisig transaction to revoke confirmation from", undefined, types.string)
+    .addPositionalParam(
+        "id",
+        "Multisig transaction to revoke confirmation from",
+        undefined,
+        types.string
+    )
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ id, signer }, hre) => {
         const signerAcc = (await hre.getNamedAccounts())[signer];
@@ -87,7 +92,7 @@ task("multisig:revoke-sig", "Revoke multisig tx confirmation")
     });
 
 task("multisig:add-owner", "Add or remove multisig owner")
-    .addParam("address", "Owner address to add or remove", undefined, types.string)
+    .addPositionalParam("address", "Owner address to add or remove", undefined, types.string)
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ address, signer }, hre) => {
         const signerAcc = (await hre.getNamedAccounts())[signer];
@@ -95,7 +100,7 @@ task("multisig:add-owner", "Add or remove multisig owner")
     });
 
 task("multisig:remove-owner", "Add or remove multisig owner")
-    .addParam("address", "Owner address to add or remove", undefined, types.string)
+    .addPositionalParam("address", "Owner address to add or remove", undefined, types.string)
     .addOptionalParam("signer", "Signer name: 'signer' or 'deployer'", "deployer")
     .setAction(async ({ address, signer }, hre) => {
         const signerAcc = (await hre.getNamedAccounts())[signer];
